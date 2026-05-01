@@ -6,8 +6,9 @@
 
 class Symlink : public FSObject {
 private:
-    std::weak_ptr<FSObject> target;
-
+    const std::weak_ptr<FSObject> target;
 public:
+    Symlink() = delete;
+    Symlink(const std::shared_ptr<FSObject>& source);
     std::shared_ptr<FSObject> resolve(int depth) override;
 };
