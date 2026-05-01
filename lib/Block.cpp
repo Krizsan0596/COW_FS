@@ -4,7 +4,8 @@
 #include <stdexcept>
 
 Block::Block(const std::string& Data) : data{} {
-    if (Data.size() > 512) throw std::invalid_argument("Block received >512 bytes of data.");
+    if (Data.size() > BLOCK_SIZE)
+        throw std::invalid_argument("Block received >" + std::to_string(BLOCK_SIZE) + " bytes of data.");
     std::copy(Data.data(), Data.data() + Data.size(), data);
 }
 
