@@ -17,6 +17,9 @@ public:
     Inode() = delete;
     Inode(const std::string& data);
     Inode(const Inode& other);
+    Inode& operator=(const Inode& other) = delete;
+    Inode(Inode&& other) = delete;
+    Inode& operator=(Inode&& other) = delete;
     ~Inode();
     std::string read() const override;
     void write(const std::string& data) override;

@@ -3,7 +3,7 @@
 
 File::File(const std::string& data) : inode(std::make_shared<Inode>(data)) {}
 
-std::shared_ptr<FSObject> File::resolve(int depth) {
+std::shared_ptr<FSObject> File::resolve(int) {
     return shared_from_this();
 }
 
