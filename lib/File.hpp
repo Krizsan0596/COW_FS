@@ -1,15 +1,20 @@
 #pragma once
 
 #include "FSObject.hpp"
+#include "Inode.hpp"
 
 #include <memory>
 
 class Inode;
 
-class File : public FSObject {
+class File : public FSObject, public std::enable_shared_from_this<File> {
 private:
     std::shared_ptr<Inode> inode;
 
 public:
+    File() = delete;
+    File(const std::string& data);
     std::shared_ptr<FSObject> resolve(int depth) override;
+    std::string read() const;
+    void write(const std::string& data);
 };
