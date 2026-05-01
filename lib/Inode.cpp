@@ -2,6 +2,7 @@
 #include "Block.hpp"
 #include <cstddef>
 #include <memory>
+#include <algorithm>
 
 Inode::Inode(const std::string& data) : size(data.size()), blocks(new std::shared_ptr<Block>[(size + BLOCK_SIZE - 1) / BLOCK_SIZE]) {
     for (size_t i = 0; i < size; i += BLOCK_SIZE) {
@@ -33,6 +34,13 @@ void Inode::write(const std::string& data) {
     if (data.size() > size) {
         std::shared_ptr<Block> *new_blocks = new std::shared_ptr<Block>[(data.size() + BLOCK_SIZE - 1) / BLOCK_SIZE];
         std::move(blocks, blocks + (size + BLOCK_SIZE - 1) / BLOCK_SIZE, new_blocks);
+        delete[] blocks;
+        blocks = new_blocks;
+        size = data.size();
+    }
+    else if (data.size() < size) {
+        std::shared_ptr<Block> *new_blocks = new std::shared_ptr<Block>[(data.size() + BLOCK_SIZE - 1) / BLOCK_SIZE];
+        std::move(blocks, blocks + (data.size() + BLOCK_SIZE - 1) / BLOCK_SIZE, new_blocks);
         delete[] blocks;
         blocks = new_blocks;
         size = data.size();
