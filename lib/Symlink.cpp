@@ -10,7 +10,9 @@ Symlink::Symlink(const std::shared_ptr<FSObject>& source) : target(source) {}
 std::shared_ptr<FSObject> Symlink::resolve(int depth) {
     if (depth > 5) throw std::runtime_error("Too many levels of symbolic links\n");
     if (auto resolved = target.lock()) {
-        return resolved->resolve(depth + 1);
+        try {
+            return resolved->resolve(depth + 1);
+        } catch (...) { throw; }
     }
     else throw std::runtime_error("Target has been deleted, dangling symlink\n");
 }
