@@ -3,12 +3,13 @@
 #include <memory>
 #include <string>
 
+class SnapshotManager;
+
 class Directory;
 
 class Dispatcher {
 private:
     std::unique_ptr<Directory> root;
-
 public:
     void route();
 
@@ -22,4 +23,6 @@ public:
     void ls(const std::string& path);
     void createSnapshot();
     void restoreSnapshot(int index);
+
+    friend class SnapshotManager;
 };

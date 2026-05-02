@@ -1,15 +1,16 @@
 #pragma once
-
-#include <array>
+#include "Dispatcher.hpp"
+#include "Directory.hpp"
+#include <cstddef>
 #include <memory>
 
-class Directory;
+#define SNAPSHOT_COUNT 5
 
 class SnapshotManager {
 private:
-    std::array<std::unique_ptr<Directory>, 5> snapshots;
-
+    std::unique_ptr<Directory> snapshots[SNAPSHOT_COUNT];
+    size_t count = 0;
 public:
-    void createSnapshot(std::shared_ptr<Directory> root);
-    void restoreSnapshot(int index);
+    void createSnapshot(const Dispatcher& globalDispatch);
+    void restoreSnapshot(int index, Dispatcher& globalDispatch) const;
 };
