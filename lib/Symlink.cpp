@@ -6,7 +6,9 @@
 
 #define MAX_DEPTH 5
 
-Symlink::Symlink(const std::string& fileName, const std::shared_ptr<FSObject>& source) : target(source), FSObject(fileName) {}
+Symlink::Symlink(const std::string& fileName, const std::shared_ptr<FSObject>& source) : FSObject(fileName), target(source) {}
+
+Symlink::Symlink(const Symlink& other) : FSObject(other.getName()), target(other.target) {}
 
 std::shared_ptr<FSObject> Symlink::resolve(int depth) {
     if (depth > MAX_DEPTH) throw std::runtime_error("Too many levels of symbolic links\n");

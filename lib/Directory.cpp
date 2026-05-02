@@ -23,7 +23,7 @@ Directory::Directory(const Directory& other)
             contents[i] = std::make_shared<Directory>(*dir);
         } else if (File* file = dynamic_cast<File*>(other.contents[i].get())) {
             contents[i] = std::make_shared<File>(*file);
-        } else if (Symlink* symlink = dynamic_cast<Symlink*>(other.contents[i].get())) {
+        } else if (Symlink* symlink = dynamic_cast<Symlink*>(other.contents[i].get())) { // Symlink cloning doesn't work, fix later.
             contents[i] = std::make_shared<Symlink>(*symlink);
         } else {
             throw std::logic_error("Unknown FSObject type during Directory copy");
