@@ -12,5 +12,5 @@ private:
     size_t count = 0;
 public:
     void createSnapshot(const Dispatcher& globalDispatch);
-    void restoreSnapshot(int index, Dispatcher& globalDispatch) const;
+    void restoreSnapshot(size_t index, Dispatcher& globalDispatch) const;
 };
