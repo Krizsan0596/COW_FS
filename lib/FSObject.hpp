@@ -11,5 +11,5 @@ public:
     FSObject(const std::string& Name) : name(Name) {}
     virtual ~FSObject() = default;
     virtual std::shared_ptr<FSObject> resolve(int depth) = 0;
-    std::string getName() const { return name; }
+    const std::string& getName() const { return name; }
 };
