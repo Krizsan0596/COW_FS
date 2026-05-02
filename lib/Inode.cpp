@@ -36,7 +36,9 @@ void Inode::write(const std::string& data) {
 
     if (new_block_count != current_block_count) {
         std::shared_ptr<Block> *new_blocks = new std::shared_ptr<Block>[new_block_count];
-        std::move(blocks, blocks + std::min(current_block_count, new_block_count), new_blocks);
+        if (blocks != nullptr && current_block_count > 0) {
+            std::move(blocks, blocks + std::min(current_block_count, new_block_count), new_blocks);
+        }
         delete[] blocks;
         blocks = new_blocks;
     }
