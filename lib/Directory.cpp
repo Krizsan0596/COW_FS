@@ -3,6 +3,7 @@
 #include "File.hpp"
 #include "Symlink.hpp"
 #include <cstddef>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -63,16 +64,45 @@ std::shared_ptr<FSObject> Directory::resolve(int) {
     return shared_from_this();
 }
 
+void Directory::list() {
+    for (size_t i = 0; i < size; i++) {
+        if (!contents[i]) continue;
+        std::cout << contents[i]->getName() << '\n';
+    }
+}
+
 void Directory::removeDir(const std::string& child) {
-        std::shared_ptr<FSObject>& dir = get(child);
-        if (dynamic_cast<Directory*>(dir.get())) dir.reset();
-        else throw std::runtime_error("Not a directory");
+    for (size_t i = 0; i < size; ++i) {
+        if (!contents[i]) continue;
+        if (contents[i]->getName() == child) {
+            if (!dynamic_cast<Directory*>(contents[i].get()))
+                throw std::runtime_error("Not a directory");
+            for (size_t j = i; j + 1 < size; ++j) {
+                contents[j] = std::move(contents[j + 1]);
+            }
+            contents[size - 1].reset();
+            --size;
+            return;
+        }
+    }
+    throw std::runtime_error("No such file or directory");
 }
 
 void Directory::removeFile(const std::string& child) {
-    std::shared_ptr<FSObject>& file = get(child);
-    if (dynamic_cast<File*>(file.get()) or dynamic_cast<Symlink*>(file.get())) file.reset();
-    else throw std::runtime_error("Is a directory");
+    for (size_t i = 0; i < size; ++i) {
+        if (!contents[i]) continue;
+        if (contents[i]->getName() == child) {
+            if (dynamic_cast<Directory*>(contents[i].get()))
+                throw std::runtime_error("Is a directory");
+            for (size_t j = i; j + 1 < size; ++j) {
+                contents[j] = std::move(contents[j + 1]);
+            }
+            contents[size - 1].reset();
+            --size;
+            return;
+        }
+    }
+    throw std::runtime_error("No such file or directory");
 }
 
 
