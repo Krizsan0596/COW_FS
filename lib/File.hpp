@@ -15,6 +15,7 @@ public:
     File() = delete;
     File(const std::string& fileName);
     File(const std::string& fileName, const std::string& data);
+    File(const File& other);
     std::shared_ptr<FSObject> resolve(int depth) override;
     std::string read() const;
     void write(const std::string& data);
