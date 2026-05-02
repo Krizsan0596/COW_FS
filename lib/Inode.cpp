@@ -31,20 +31,17 @@ std::string Inode::read() const {
 }
 
 void Inode::write(const std::string& data) {
-    if (data.size() > size) {
-        std::shared_ptr<Block> *new_blocks = new std::shared_ptr<Block>[(data.size() + BLOCK_SIZE - 1) / BLOCK_SIZE];
-        std::move(blocks, blocks + (size + BLOCK_SIZE - 1) / BLOCK_SIZE, new_blocks);
+    size_t current_block_count = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    size_t new_block_count = (data.size() + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+    if (new_block_count != current_block_count) {
+        std::shared_ptr<Block> *new_blocks = new std::shared_ptr<Block>[new_block_count];
+        std::move(blocks, blocks + std::min(current_block_count, new_block_count), new_blocks);
         delete[] blocks;
         blocks = new_blocks;
-        size = data.size();
     }
-    else if (data.size() < size) {
-        std::shared_ptr<Block> *new_blocks = new std::shared_ptr<Block>[(data.size() + BLOCK_SIZE - 1) / BLOCK_SIZE];
-        std::move(blocks, blocks + (data.size() + BLOCK_SIZE - 1) / BLOCK_SIZE, new_blocks);
-        delete[] blocks;
-        blocks = new_blocks;
-        size = data.size();
-    }
+    size = data.size();
+
     for (size_t i = 0; i < size; i += BLOCK_SIZE) {
         std::string chunk = data.substr(i, BLOCK_SIZE);
         size_t index = i / BLOCK_SIZE;

@@ -1,7 +1,10 @@
 #include "File.hpp"
+#include "FSObject.hpp"
 #include <memory>
 
-File::File(const std::string& data) : inode(std::make_shared<Inode>(data)) {}
+File::File(const std::string& fileName) : File(fileName, "") {}
+
+File::File(const std::string& fileName, const std::string& data) : inode(std::make_shared<Inode>(data)), FSObject(fileName) {}
 
 std::shared_ptr<FSObject> File::resolve(int) {
     return shared_from_this();
