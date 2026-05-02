@@ -8,7 +8,8 @@ private:
     std::string name;
 
 public:
-    FSObject() = default;
+    FSObject() = delete;
+    FSObject(const std::string& Name) : name(Name) {}
     virtual ~FSObject() = default;
     virtual std::shared_ptr<FSObject> resolve(int depth) = 0;
 };
