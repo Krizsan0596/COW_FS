@@ -3,13 +3,18 @@
 #include <memory>
 #include <string>
 
-class Directory;
+#include "FSObject.hpp"
+#include "Directory.hpp"
+
+#define MAX_PATH_DEPTH 100
 
 class Dispatcher {
 private:
-    std::unique_ptr<Directory> root;
+    std::shared_ptr<Directory> root;
 
+    std::shared_ptr<FSObject> resolvePath(const std::string& path) const;
 public:
+    Dispatcher();
     void route();
 
     void read(const std::string& path);
