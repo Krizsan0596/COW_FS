@@ -10,6 +10,6 @@ public:
     FSObject() = delete;
     FSObject(const std::string& Name) : name(Name) {}
     virtual ~FSObject() = default;
-    virtual std::shared_ptr<FSObject> resolve(int depth) = 0;
+    virtual std::shared_ptr<FSObject> resolve(int depth = 0) = 0;
     const std::string& getName() const { return name; }
 };
