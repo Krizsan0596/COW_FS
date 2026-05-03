@@ -6,9 +6,10 @@
 #include <stdexcept>
 #include <string>
 
-Dispatcher::Dispatcher() : root(std::make_unique<Directory>("")) {}
+Dispatcher::Dispatcher() : root(std::make_shared<Directory>("")) {}
 
 std::shared_ptr<FSObject> Dispatcher::resolvePath(const std::string& path) const {
+    if (path.empty()) throw std::runtime_error("Path must not be empty");
     if (path[0] != '/') throw std::runtime_error("Only absolute paths allowed");
 
     std::shared_ptr<FSObject> currentObject = root;
@@ -24,6 +25,7 @@ std::shared_ptr<FSObject> Dispatcher::resolvePath(const std::string& path) const
             currentObject = visited[--depth];
             continue;
         }
+        if (depth >= MAX_PATH_DEPTH) throw std::runtime_error("Maximum path depth exceeded");
         visited[depth++] = currentObject;
         if (auto symlink = dynamic_cast<Symlink*>(currentObject.get())) {
             currentObject = symlink->resolve();
