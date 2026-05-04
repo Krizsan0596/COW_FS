@@ -5,12 +5,14 @@
 
 #include "FSObject.hpp"
 #include "Directory.hpp"
+#include "SnapshotManager.hpp"
 
 #define MAX_PATH_DEPTH 100
 
 class Dispatcher {
 private:
     std::shared_ptr<Directory> root;
+    std::unique_ptr<SnapshotManager> snapshotManager;
 
     std::shared_ptr<FSObject> resolvePath(const std::string& path) const;
     std::string stripTrailingSlashes(std::string path) const;
@@ -26,6 +28,6 @@ public:
     void mkdir(const std::string& path);
     void rmdir(const std::string& path);
     void ls(const std::string& path) const;
-    void createSnapshot();
+    void createSnapshot() const;
     void restoreSnapshot(int index);
 };
