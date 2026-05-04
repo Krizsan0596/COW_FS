@@ -5,11 +5,42 @@
 #include "Util.hpp"
 #include <cstddef>
 #include <cstring>
+#include <exception>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <iostream>
+
+enum class RoutedCommand {
+    Read,
+    Write,
+    Rm,
+    Slink,
+    Hlink,
+    Mkdir,
+    Rmdir,
+    Ls,
+    Snapshot,
+    Restore,
+    Exit,
+    Unknown
+};
+
+RoutedCommand parseCommand(const std::string& command) {
+    if (command == "read") return RoutedCommand::Read;
+    if (command == "write") return RoutedCommand::Write;
+    if (command == "rm") return RoutedCommand::Rm;
+    if (command == "slink") return RoutedCommand::Slink;
+    if (command == "hlink") return RoutedCommand::Hlink;
+    if (command == "mkdir") return RoutedCommand::Mkdir;
+    if (command == "rmdir") return RoutedCommand::Rmdir;
+    if (command == "ls") return RoutedCommand::Ls;
+    if (command == "createSnapshot") return RoutedCommand::Snapshot;
+    if (command == "restoreSnapshot") return RoutedCommand::Restore;
+    if (command == "exit" or command == "quit") return RoutedCommand::Exit;
+    return RoutedCommand::Unknown;
+}
 
 std::string Dispatcher::stripTrailingSlashes(std::string path) const {
     while (path.size() > 1 && path.back() == '/') path.pop_back();
@@ -17,6 +48,96 @@ std::string Dispatcher::stripTrailingSlashes(std::string path) const {
 }
 
 Dispatcher::Dispatcher() : root(std::make_shared<Directory>("")), snapshotManager(std::make_unique<SnapshotManager>()) {}
+
+void Dispatcher::route() {
+    std::string line;
+    while (true) {
+        std::cout << "> ";
+        if (!std::getline(std::cin, line)) break;
+        if (line.empty()) continue;
+
+        std::stringstream lineStream(line);
+        std::string command;
+        lineStream >> command;
+
+        try {
+            switch (parseCommand(command)) {
+                case RoutedCommand::Read: {
+                    std::string path;
+                    if (!(lineStream >> path)) throw std::runtime_error("Missing path for read");
+                    read(path);
+                    break;
+                }
+                case RoutedCommand::Write: {
+                    std::string path;
+                    if (!(lineStream >> path)) throw std::runtime_error("Missing path for write");
+                    std::string data;
+                    std::getline(lineStream, data);
+                    if (!data.empty() && data.front() == ' ') data.erase(0, 1);
+                    else throw std::runtime_error("Missing data for write");
+                    write(path, data);
+                    break;
+                }
+                case RoutedCommand::Rm: {
+                    std::string path;
+                    if (!(lineStream >> path)) throw std::runtime_error("Missing path for rm");
+                    rm(path);
+                    break;
+                }
+                case RoutedCommand::Slink: {
+                    std::string dstPath, srcPath;
+                    if (!(lineStream >> dstPath >> srcPath)) throw std::runtime_error("Missing path for slink");
+                    slink(dstPath, srcPath);
+                    break;
+                }
+                case RoutedCommand::Hlink: {
+                    std::string dstPath, srcPath;
+                    if (!(lineStream >> dstPath >> srcPath)) throw std::runtime_error("Missing path for hlink");
+                    hlink(dstPath, srcPath);
+                    break;
+                }
+                case RoutedCommand::Mkdir: {
+                    std::string path;
+                    if (!(lineStream >> path)) throw std::runtime_error("Missing path for mkdir");
+                    mkdir(path);
+                    break;
+                }
+                case RoutedCommand::Rmdir: {
+                    std::string path;
+                    if (!(lineStream >> path)) throw std::runtime_error("Missing path for rmdir");
+                    rmdir(path);
+                    break;
+                }
+                case RoutedCommand::Ls: {
+                    std::string path;
+                    if (!(lineStream >> path)) throw std::runtime_error("Missing path for ls");
+                    ls(path);
+                    break;
+                }
+                case RoutedCommand::Snapshot: {
+                    createSnapshot();
+                    break;
+                }
+                case RoutedCommand::Restore: {
+                    int index;
+                    if (!(lineStream >> index)) throw std::runtime_error("Missing index for restore");
+                    restoreSnapshot(index);
+                    break;
+                }
+                case RoutedCommand::Exit: {
+                    return;
+                }
+                case RoutedCommand::Unknown:
+                default:
+                    throw std::runtime_error("Unknown command: " + command);
+            }
+        } catch (const FileSystemError& e) {
+            std::cerr << command << ": " << e.path() << ": " << e.what() << "\n";
+        } catch (const std::exception& e) {
+            std::cerr << command << ": " << e.what() << "\n";
+        }
+    }
+}
 
 std::shared_ptr<FSObject> Dispatcher::resolvePath(const std::string& path) const {
     try {
