@@ -11,7 +11,6 @@ private:
     size_t size;
     size_t capacity;
     std::shared_ptr<FSObject> *contents;
-    std::shared_ptr<File> touch(const std::string& child);
 
 public:
     Directory() = delete;
@@ -28,4 +27,6 @@ public:
     void removeFile(const std::string& child);
     void mkdir(const std::string& child);
     void ln(const std::string& child, const std::shared_ptr<FSObject>& target);
+    std::shared_ptr<File> touch(const std::string& child);
+    std::shared_ptr<File> touch(const std::string& child, const File& source);
 };

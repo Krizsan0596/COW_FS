@@ -49,6 +49,19 @@ std::shared_ptr<File> Directory::touch(const std::string& child) {
     return new_file;
 }
 
+std::shared_ptr<File> Directory::touch(const std::string& child, const File& source) {
+    if (size == capacity) {
+        std::shared_ptr<FSObject> *new_contents = new std::shared_ptr<FSObject>[capacity * 2];
+        std::move(contents, contents + size, new_contents);
+        delete[] contents;
+        contents = new_contents;
+        capacity *= 2;
+    }
+    std::shared_ptr<File> new_file = std::make_shared<File>(child, source);
+    contents[size++] = new_file;
+    return new_file;
+}
+
 void Directory::mkdir(const std::string& child) {
     if (size == capacity) {
         std::shared_ptr<FSObject> *new_contents = new std::shared_ptr<FSObject>[capacity * 2];
