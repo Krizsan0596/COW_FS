@@ -22,7 +22,7 @@ public:
     void rm(const std::string& path);
     void slink(const std::string& dstPath, const std::string& srcPath);
     void hlink(const std::string& dstPath, const std::string& srcPath);
-    void mkdir(std::string path);
+    void mkdir(const std::string& path);
     void rmdir(const std::string& path);
     void ls(const std::string& path) const;
     void createSnapshot();
