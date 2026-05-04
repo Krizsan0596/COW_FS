@@ -9,7 +9,7 @@ File::File(const std::string& fileName, const std::string& data) : inode(std::ma
 File::File(const std::string& fileName, const File& other)
     : FSObject(fileName),
       std::enable_shared_from_this<File>(),
-      inode(std::make_shared<Inode>(*other.inode)) {}
+      inode(other.inode) {}
 
 std::shared_ptr<FSObject> File::resolve(int) {
     return shared_from_this();

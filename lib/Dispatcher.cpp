@@ -93,9 +93,10 @@ void Dispatcher::route() {
                     std::string path;
                     if (!parseToken(lineStream, path)) throw std::runtime_error("Missing path for write");
                     std::string data;
-                    lineStream >> std::ws;
                     std::getline(lineStream, data);
-                    if (data.empty()) throw std::runtime_error("Missing data for write");
+                    if (!data.empty() && (data[0] == ' ' || data[0] == '\t')) {
+                        data.erase(0, 1);
+                    }
                     write(path, data);
                     break;
                 }
@@ -242,12 +243,12 @@ void Dispatcher::write(const std::string& path, const std::string& data) {
         try {
             node = resolvePath(normalizedPath);
         } catch (const std::runtime_error& e) {
-            if (!strcmp("No such file or directory", e.what())) throw;
+            if (strcmp("No such file or directory", e.what()) != 0) throw;
 
             size_t pos = normalizedPath.rfind('/');
             if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
 
-            std::string parent = (pos == 0) ? normalizedPath.substr(0, pos) : normalizedPath.substr(0, 1);
+            std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
             std::string child = normalizedPath.substr(pos + 1);
 
             std::shared_ptr<FSObject> node = resolvePath(parent);
@@ -320,9 +321,13 @@ void Dispatcher::mkdir(const std::string& path) {
         std::shared_ptr<FSObject> node = resolvePath(parent);
         node = node->resolve();
         if (auto dir = dynamic_cast<Directory*>(node.get())) {
-            if (dir->get(child)) throw std::runtime_error("Directory already exists");
-            dir->mkdir(child);
-            return;
+            try {
+                dir->get(child);
+                throw std::runtime_error("Directory already exists");
+            } catch (const std::runtime_error&) {
+                dir->mkdir(child);
+                return;
+            }
         }
         else throw std::runtime_error("No such file or directory");
     } catch (const std::runtime_error& e) {
@@ -376,10 +381,10 @@ void Dispatcher::hlink(const std::string& dstPath, const std::string& srcPath) {
 
         std::shared_ptr<FSObject> node = resolvePath(parent);
         node = node->resolve();
-        if (auto dir = dynamic_cast<Directory*>(node.get())) {
-            if (dir->get(child)) throw std::runtime_error("Destination already exists");
-            dir->touch(child, *dynamic_cast<File*>(srcNode.get()));
-        }
+        auto dir = dynamic_cast<Directory*>(node.get());
+        if (!dir) throw std::runtime_error("Destination parent is not a directory");
+        if (dir->get(child)) throw std::runtime_error("Destination already exists");
+        dir->touch(child, *dynamic_cast<File*>(srcNode.get()));
     } catch (const std::runtime_error& e) {
         throw FileSystemError(e.what(), dstPath);
     }
@@ -390,5 +395,5 @@ void Dispatcher::createSnapshot() const {
 }
 
 void Dispatcher::restoreSnapshot(int index) {
-    snapshotManager->restoreSnapshot(index);
+    root = snapshotManager->restoreSnapshot(index);
 }
