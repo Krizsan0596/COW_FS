@@ -1,5 +1,6 @@
 #include "Dispatcher.hpp"
 #include "FSObject.hpp"
+#include "SnapshotManager.hpp"
 #include "Symlink.hpp"
 #include "Util.hpp"
 #include <cstddef>
@@ -14,7 +15,7 @@ std::string Dispatcher::stripTrailingSlashes(std::string path) const {
     return path;
 }
 
-Dispatcher::Dispatcher() : root(std::make_shared<Directory>("")) {}
+Dispatcher::Dispatcher() : root(std::make_shared<Directory>("")), snapshotManager(std::make_unique<SnapshotManager>()) {}
 
 std::shared_ptr<FSObject> Dispatcher::resolvePath(const std::string& path) const {
     try {
@@ -206,4 +207,12 @@ void Dispatcher::hlink(const std::string& dstPath, const std::string& srcPath) {
     } catch (const std::runtime_error& e) {
         throw FileSystemError(e.what(), dstPath);
     }
+}
+
+void Dispatcher::createSnapshot() const {
+    snapshotManager->createSnapshot(root);
+}
+
+void Dispatcher::restoreSnapshot(int index) {
+    snapshotManager->restoreSnapshot(index);
 }
