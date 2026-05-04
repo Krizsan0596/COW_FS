@@ -1,8 +1,9 @@
 #pragma once
-#include "Dispatcher.hpp"
 #include "Directory.hpp"
 #include <cstddef>
 #include <memory>
+
+class Dispatcher;
 
 #define SNAPSHOT_COUNT 5
 
