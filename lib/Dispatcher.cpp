@@ -41,22 +41,21 @@ RoutedCommand parseCommand(const std::string& command) {
     return RoutedCommand::Unknown;
 }
 
-// Parse a token from the stream, supporting double-quoted strings to allow
-// spaces inside path arguments (e.g. "/dir/my file" is returned as /dir/my file).
-// Returns false if no token is available or a quoted string has no closing quote.
 static bool parseToken(std::stringstream& ss, std::string& token) {
     ss >> std::ws;
     if (!ss) return false;
+
     if (ss.peek() == '"') {
-        ss.get(); // consume opening quote
-        if (!std::getline(ss, token, '"') || ss.eof()) return false;
-        return true;
+        ss.get();
+        std::getline(ss, token, '"');
+        return ss.good() || ss.eof();
+    } else {
+        ss >> token;
+        return !token.empty();
     }
-    return static_cast<bool>(ss >> token);
 }
 
-// Throw if any non-whitespace content remains on the line (extra arguments).
-static void checkNoExtraArgs(std::stringstream& ss, const std::string& cmd) {
+static void checkExtraArgs(std::stringstream& ss, const std::string& cmd) {
     std::string extra;
     if (ss >> extra) throw std::runtime_error("Too many arguments for " + cmd);
 }
@@ -84,7 +83,7 @@ void Dispatcher::route() {
                 case RoutedCommand::Read: {
                     std::string path;
                     if (!parseToken(lineStream, path)) throw std::runtime_error("Missing path for read");
-                    checkNoExtraArgs(lineStream, "read");
+                    checkExtraArgs(lineStream, "read");
                     read(path);
                     break;
                 }
@@ -102,7 +101,7 @@ void Dispatcher::route() {
                 case RoutedCommand::Rm: {
                     std::string path;
                     if (!parseToken(lineStream, path)) throw std::runtime_error("Missing path for rm");
-                    checkNoExtraArgs(lineStream, "rm");
+                    checkExtraArgs(lineStream, "rm");
                     rm(path);
                     break;
                 }
@@ -110,7 +109,7 @@ void Dispatcher::route() {
                     std::string dstPath, srcPath;
                     if (!parseToken(lineStream, dstPath) || !parseToken(lineStream, srcPath))
                         throw std::runtime_error("Missing path for slink");
-                    checkNoExtraArgs(lineStream, "slink");
+                    checkExtraArgs(lineStream, "slink");
                     slink(dstPath, srcPath);
                     break;
                 }
@@ -118,40 +117,40 @@ void Dispatcher::route() {
                     std::string dstPath, srcPath;
                     if (!parseToken(lineStream, dstPath) || !parseToken(lineStream, srcPath))
                         throw std::runtime_error("Missing path for hlink");
-                    checkNoExtraArgs(lineStream, "hlink");
+                    checkExtraArgs(lineStream, "hlink");
                     hlink(dstPath, srcPath);
                     break;
                 }
                 case RoutedCommand::Mkdir: {
                     std::string path;
                     if (!parseToken(lineStream, path)) throw std::runtime_error("Missing path for mkdir");
-                    checkNoExtraArgs(lineStream, "mkdir");
+                    checkExtraArgs(lineStream, "mkdir");
                     mkdir(path);
                     break;
                 }
                 case RoutedCommand::Rmdir: {
                     std::string path;
                     if (!parseToken(lineStream, path)) throw std::runtime_error("Missing path for rmdir");
-                    checkNoExtraArgs(lineStream, "rmdir");
+                    checkExtraArgs(lineStream, "rmdir");
                     rmdir(path);
                     break;
                 }
                 case RoutedCommand::Ls: {
                     std::string path;
                     if (!parseToken(lineStream, path)) throw std::runtime_error("Missing path for ls");
-                    checkNoExtraArgs(lineStream, "ls");
+                    checkExtraArgs(lineStream, "ls");
                     ls(path);
                     break;
                 }
                 case RoutedCommand::Snapshot: {
-                    checkNoExtraArgs(lineStream, "createSnapshot");
+                    checkExtraArgs(lineStream, "createSnapshot");
                     createSnapshot();
                     break;
                 }
                 case RoutedCommand::Restore: {
                     int index;
                     if (!(lineStream >> index)) throw std::runtime_error("Missing index for restore");
-                    checkNoExtraArgs(lineStream, "restoreSnapshot");
+                    checkExtraArgs(lineStream, "restoreSnapshot");
                     restoreSnapshot(index);
                     break;
                 }
@@ -250,9 +249,15 @@ void Dispatcher::write(const std::string& path, const std::string& data) {
             std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
             std::string child = normalizedPath.substr(pos + 1);
 
-            std::shared_ptr<FSObject> parentNode = resolvePath(parent);
-            parentNode = parentNode->resolve();
-            if (auto dir = dynamic_cast<Directory*>(parentNode.get())) {
+            node = resolvePath(parent);
+            node = node->resolve();
+            if (auto dir = dynamic_cast<Directory*>(node.get())) {
+                try {
+                    dir->get(child);
+                    throw std::runtime_error("Destination already exists");
+                } catch (const std::runtime_error& inner) {
+                    if (std::string(inner.what()) == "Destination already exists") throw;
+                }
                 node = dir->touch(child);
             } else {
                 throw std::runtime_error("Parent is not a directory");

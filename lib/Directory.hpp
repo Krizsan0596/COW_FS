@@ -11,6 +11,7 @@ private:
     size_t size;
     size_t capacity;
     std::shared_ptr<FSObject> *contents;
+    void resizeContents();
 
 public:
     Directory() = delete;
