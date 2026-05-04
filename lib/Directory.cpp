@@ -67,7 +67,15 @@ std::shared_ptr<FSObject> Directory::resolve(int) {
 void Directory::list() {
     for (size_t i = 0; i < size; i++) {
         if (!contents[i]) continue;
-        std::cout << contents[i]->getName() << '\n';
+        if (auto dir = dynamic_cast<Directory*>(contents[i].get())) {
+            std::cout << dir->getName() << "/\n";
+        }
+        else if (auto link = dynamic_cast<Symlink*>(contents[i].get())) {
+            if (auto dir = dynamic_cast<Directory*>(link->resolve().get())) {
+                std::cout << link->getName() << "/\n";
+            }
+        }
+        else std::cout << contents[i]->getName() << '\n';
     }
 }
 
