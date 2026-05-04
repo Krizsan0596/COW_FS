@@ -58,7 +58,7 @@ void Dispatcher::route() {
 
         std::stringstream lineStream(line);
         std::string command;
-        lineStream >> command;
+        if (!(lineStream >> command)) continue;
 
         try {
             switch (parseCommand(command)) {
