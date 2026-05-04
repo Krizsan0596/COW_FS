@@ -8,14 +8,22 @@
 #include <string>
 #include <iostream>
 
+namespace {
+std::string stripTrailingSlashes(std::string path) {
+    while (path.size() > 1 && path.back() == '/') path.pop_back();
+    return path;
+}
+}
+
 Dispatcher::Dispatcher() : root(std::make_shared<Directory>("")) {}
 
 std::shared_ptr<FSObject> Dispatcher::resolvePath(const std::string& path) const {
-    if (path.empty()) throw std::logic_error("Path must not be empty");
-    if (path[0] != '/') throw std::runtime_error("Only absolute paths allowed");
+    std::string normalizedPath = stripTrailingSlashes(path);
+    if (normalizedPath.empty()) throw std::logic_error("Path must not be empty");
+    if (normalizedPath[0] != '/') throw std::runtime_error("Only absolute paths allowed");
 
     std::shared_ptr<FSObject> currentObject = root;
-    std::stringstream pathStream(path);
+    std::stringstream pathStream(normalizedPath);
     std::string item;
     int depth = 0;
     std::shared_ptr<FSObject> visited[MAX_PATH_DEPTH];
@@ -73,11 +81,12 @@ void Dispatcher::read(const std::string& path) const {
 // }
 
 void Dispatcher::rm(const std::string& path) {
-    size_t pos = path.rfind('/');
+    std::string normalizedPath = stripTrailingSlashes(path);
+    size_t pos = normalizedPath.rfind('/');
     if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
 
-    std::string parent = (pos == 0) ? path.substr(0, pos) : path.substr(0, 1);
-    std::string child = path.substr(pos + 1);
+    std::string parent = (pos == 0) ? normalizedPath.substr(0, pos) : normalizedPath.substr(0, 1);
+    std::string child = normalizedPath.substr(pos + 1);
 
     std::shared_ptr<FSObject> node = resolvePath(parent);
     if (auto dir = dynamic_cast<Directory*>(node.get())) {
@@ -88,11 +97,12 @@ void Dispatcher::rm(const std::string& path) {
 }
 
 void Dispatcher::rmdir(const std::string& path) {
-    size_t pos = path.rfind('/');
+    std::string normalizedPath = stripTrailingSlashes(path);
+    size_t pos = normalizedPath.rfind('/');
     if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
 
-    std::string parent = (pos == 0) ? path.substr(0, pos) : path.substr(0, 1);
-    std::string child = path.substr(pos + 1);
+    std::string parent = (pos == 0) ? normalizedPath.substr(0, pos) : normalizedPath.substr(0, 1);
+    std::string child = normalizedPath.substr(pos + 1);
 
     std::shared_ptr<FSObject> node = resolvePath(parent);
     if (auto dir = dynamic_cast<Directory*>(node.get())) {
@@ -103,7 +113,7 @@ void Dispatcher::rmdir(const std::string& path) {
 }
 
 void Dispatcher::mkdir(std::string path) {
-    while (path.size() > 1 && path.back() == '/') path.pop_back();
+    path = stripTrailingSlashes(path);
     size_t pos = path.rfind('/');
     if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
 
@@ -113,9 +123,13 @@ void Dispatcher::mkdir(std::string path) {
     std::shared_ptr<FSObject> node = resolvePath(parent);
     node = node->resolve();
     if (auto dir = dynamic_cast<Directory*>(node.get())) {
+        if (dir->get(child)) throw std::runtime_error("Directory already exists");
         dir->mkdir(child);
         return;
     }
     else throw std::runtime_error("No such file or directory");
-    throw std::runtime_error("Directory already exists");
+}
+
+void Dispatcher::slink(const std::string& dstPath, const std::string& srcPath) {
+    
 }
