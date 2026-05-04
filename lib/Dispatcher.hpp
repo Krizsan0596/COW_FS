@@ -13,6 +13,7 @@ private:
     std::shared_ptr<Directory> root;
 
     std::shared_ptr<FSObject> resolvePath(const std::string& path) const;
+    std::string stripTrailingSlashes(std::string path) const;
 public:
     Dispatcher();
     void route();

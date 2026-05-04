@@ -9,11 +9,9 @@
 #include <string>
 #include <iostream>
 
-namespace {
-std::string stripTrailingSlashes(std::string path) {
+std::string Dispatcher::stripTrailingSlashes(std::string path) const {
     while (path.size() > 1 && path.back() == '/') path.pop_back();
     return path;
-}
 }
 
 Dispatcher::Dispatcher() : root(std::make_shared<Directory>("")) {}
@@ -156,10 +154,28 @@ void Dispatcher::mkdir(const std::string& path) {
 }
 
 void Dispatcher::slink(const std::string& dstPath, const std::string& srcPath) {
+    std::shared_ptr<FSObject> srcNode;
     try {
-        std::shared_ptr<FSObject> srcNode = resolvePath(srcPath);
-        std::string normalizedPath = stripTrailingSlashes(dstPath);
+        srcNode = resolvePath(srcPath);
     } catch (const std::runtime_error& e) {
         throw FileSystemError(e.what(), srcPath);
     }
+    try {
+        std::string normalizedPath = stripTrailingSlashes(dstPath);
+        size_t pos = normalizedPath.rfind('/');
+        if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
+
+        std::string parent = (pos == 0) ? normalizedPath.substr(0, pos) : normalizedPath.substr(0, 1);
+        std::string child = normalizedPath.substr(pos + 1);
+
+        std::shared_ptr<FSObject> node = resolvePath(parent);
+        node = node->resolve();
+        if (auto dir = dynamic_cast<Directory*>(node.get())) {
+            if (dir->get(child)) throw std::runtime_error("Destination already exists");
+            dir->ln(child, srcNode);    
+        }
+    } catch (std::runtime_error& e) {
+        throw FileSystemError(e.what(), dstPath);
+    }
+
 }
