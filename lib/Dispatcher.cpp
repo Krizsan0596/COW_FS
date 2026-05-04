@@ -1,10 +1,12 @@
 #include "Dispatcher.hpp"
 #include "FSObject.hpp"
 #include "Symlink.hpp"
+#include <cstddef>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <iostream>
 
 Dispatcher::Dispatcher() : root(std::make_shared<Directory>("")) {}
 
@@ -38,4 +40,82 @@ std::shared_ptr<FSObject> Dispatcher::resolvePath(const std::string& path) const
         }
     }
     return currentObject;
+}
+
+void Dispatcher::ls(const std::string& path) const {
+    std::shared_ptr<FSObject> node = resolvePath(path);
+    node = node->resolve();
+    if (auto dir = dynamic_cast<Directory*>(node.get())) {
+        dir->list();
+        return;
+    }
+    throw std::runtime_error("Not a directory");
+}
+
+void Dispatcher::read(const std::string& path) const {
+    std::shared_ptr<FSObject> node = resolvePath(path);
+    node = node->resolve();
+    if (auto file = dynamic_cast<File*>(node.get())) {
+        std::cout << file->read() << "\n";
+        return;
+    }
+    throw std::runtime_error("Is a directory");
+}
+
+// void Dispatcher::write(const std::string& path, const std::string& data) {
+//     std::shared_ptr<FSObject> node = resolvePath(path);
+//     node = node->resolve();
+//     if (auto file = dynamic_cast<File*>(node.get())) {
+//         file->write(data);
+//         return;
+//     }
+//     throw std::runtime_error("Is a directory");
+// }
+
+void Dispatcher::rm(const std::string& path) {
+    size_t pos = path.rfind('/');
+    if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
+
+    std::string parent = (pos == 0) ? path.substr(0, pos) : path.substr(0, 1);
+    std::string child = path.substr(pos + 1);
+
+    std::shared_ptr<FSObject> node = resolvePath(parent);
+    if (auto dir = dynamic_cast<Directory*>(node.get())) {
+        dir->removeFile(child);
+        return;
+    }
+    throw std::runtime_error("No such file or directory");
+}
+
+void Dispatcher::rmdir(const std::string& path) {
+    size_t pos = path.rfind('/');
+    if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
+
+    std::string parent = (pos == 0) ? path.substr(0, pos) : path.substr(0, 1);
+    std::string child = path.substr(pos + 1);
+
+    std::shared_ptr<FSObject> node = resolvePath(parent);
+    if (auto dir = dynamic_cast<Directory*>(node.get())) {
+        dir->removeDir(child);
+        return;
+    }
+    throw std::runtime_error("No such file or directory");
+}
+
+void Dispatcher::mkdir(std::string path) {
+    while (path.size() > 1 && path.back() == '/') path.pop_back();
+    size_t pos = path.rfind('/');
+    if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
+
+    std::string parent = (pos == 0) ? path.substr(0, pos) : path.substr(0, 1);
+    std::string child = path.substr(pos + 1);
+
+    std::shared_ptr<FSObject> node = resolvePath(parent);
+    node = node->resolve();
+    if (auto dir = dynamic_cast<Directory*>(node.get())) {
+        dir->mkdir(child);
+        return;
+    }
+    else throw std::runtime_error("No such file or directory");
+    throw std::runtime_error("Directory already exists");
 }
