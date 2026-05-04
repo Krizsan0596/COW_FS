@@ -60,6 +60,17 @@ void Directory::mkdir(const std::string& child) {
     contents[size++] = std::make_shared<Directory>(child);
 }
 
+void Directory::ln(const std::string& child, const std::shared_ptr<FSObject>& target) {
+    if (size == capacity) {
+        std::shared_ptr<FSObject> *new_contents = new std::shared_ptr<FSObject>[capacity * 2];
+        std::move(contents, contents + size, new_contents);
+        delete[] contents;
+        contents = new_contents;
+        capacity *= 2;
+    }
+    contents[size++] = std::make_shared<Symlink>(child, target);
+}
+
 std::shared_ptr<FSObject> Directory::resolve(int) {
     return shared_from_this();
 }

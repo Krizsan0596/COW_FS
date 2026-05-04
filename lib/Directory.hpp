@@ -27,4 +27,5 @@ public:
     void removeDir(const std::string& child);
     void removeFile(const std::string& child);
     void mkdir(const std::string& child);
+    void ln(const std::string& child, const std::shared_ptr<FSObject>& target);
 };
