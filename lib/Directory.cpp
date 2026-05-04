@@ -7,7 +7,7 @@
 #include <memory>
 #include <stdexcept>
 
-Directory::Directory(const std::string& dirName) : FSObject(dirName), capacity(8), size(0), contents(new std::shared_ptr<FSObject>[capacity]) {}
+Directory::Directory(const std::string& dirName) : FSObject(dirName), size(0), capacity(8), contents(new std::shared_ptr<FSObject>[capacity]) {}
 
 Directory::Directory(const Directory& other)
     : FSObject(other),
@@ -36,13 +36,17 @@ Directory::~Directory() {
     delete[] contents;
 }
 
+void Directory::resizeContents() {
+    std::shared_ptr<FSObject> *new_contents = new std::shared_ptr<FSObject>[capacity * 2];
+    std::move(contents, contents + size, new_contents);
+    delete[] contents;
+    contents = new_contents;
+    capacity *= 2;
+}
+
 std::shared_ptr<File> Directory::touch(const std::string& child) {
     if (size == capacity) {
-        std::shared_ptr<FSObject> *new_contents = new std::shared_ptr<FSObject>[capacity * 2];
-        std::move(contents, contents + size, new_contents);
-        delete[] contents;
-        contents = new_contents;
-        capacity *= 2;
+        resizeContents();
     }
     std::shared_ptr<File> new_file = std::make_shared<File>(child);
     contents[size++] = new_file;
@@ -51,11 +55,7 @@ std::shared_ptr<File> Directory::touch(const std::string& child) {
 
 std::shared_ptr<File> Directory::touch(const std::string& child, const File& source) {
     if (size == capacity) {
-        std::shared_ptr<FSObject> *new_contents = new std::shared_ptr<FSObject>[capacity * 2];
-        std::move(contents, contents + size, new_contents);
-        delete[] contents;
-        contents = new_contents;
-        capacity *= 2;
+        resizeContents();
     }
     std::shared_ptr<File> new_file = std::make_shared<File>(child, source);
     contents[size++] = new_file;
@@ -64,22 +64,14 @@ std::shared_ptr<File> Directory::touch(const std::string& child, const File& sou
 
 void Directory::mkdir(const std::string& child) {
     if (size == capacity) {
-        std::shared_ptr<FSObject> *new_contents = new std::shared_ptr<FSObject>[capacity * 2];
-        std::move(contents, contents + size, new_contents);
-        delete[] contents;
-        contents = new_contents;
-        capacity *= 2;
+        resizeContents();
     }
     contents[size++] = std::make_shared<Directory>(child);
 }
 
 void Directory::ln(const std::string& child, const std::shared_ptr<FSObject>& target) {
     if (size == capacity) {
-        std::shared_ptr<FSObject> *new_contents = new std::shared_ptr<FSObject>[capacity * 2];
-        std::move(contents, contents + size, new_contents);
-        delete[] contents;
-        contents = new_contents;
-        capacity *= 2;
+        resizeContents();
     }
     contents[size++] = std::make_shared<Symlink>(child, target);
 }
@@ -95,7 +87,7 @@ void Directory::list() {
             std::cout << dir->getName() << "/\n";
         }
         else if (auto link = dynamic_cast<Symlink*>(contents[i].get())) {
-            if (auto dir = dynamic_cast<Directory*>(link->resolve().get())) {
+            if (dynamic_cast<Directory*>(link->resolve().get())) {
                 std::cout << link->getName() << "/\n";
             }
         }

@@ -4,7 +4,7 @@
 
 File::File(const std::string& fileName) : File(fileName, "") {}
 
-File::File(const std::string& fileName, const std::string& data) : inode(std::make_shared<Inode>(data)), FSObject(fileName) {}
+File::File(const std::string& fileName, const std::string& data) : FSObject(fileName), inode(std::make_shared<Inode>(data)) {}
 
 File::File(const std::string& fileName, const File& other)
     : FSObject(fileName),
