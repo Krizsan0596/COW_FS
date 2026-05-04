@@ -4,6 +4,7 @@
 #include "Symlink.hpp"
 #include "Util.hpp"
 #include <cstddef>
+#include <cstring>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -82,15 +83,38 @@ void Dispatcher::read(const std::string& path) const {
     }
 }
 
-// void Dispatcher::write(const std::string& path, const std::string& data) {
-//     std::shared_ptr<FSObject> node = resolvePath(path);
-//     node = node->resolve();
-//     if (auto file = dynamic_cast<File*>(node.get())) {
-//         file->write(data);
-//         return;
-//     }
-//     throw std::runtime_error("Is a directory");
-// }
+void Dispatcher::write(const std::string& path, const std::string& data) {
+    try {
+        std::shared_ptr<FSObject> node;
+        std::string normalizedPath = stripTrailingSlashes(path);
+        try {
+            node = resolvePath(normalizedPath);
+        } catch (const std::runtime_error& e) {
+            if (!strcmp("No such file or directory", e.what())) throw;
+
+            size_t pos = normalizedPath.rfind('/');
+            if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
+
+            std::string parent = (pos == 0) ? normalizedPath.substr(0, pos) : normalizedPath.substr(0, 1);
+            std::string child = normalizedPath.substr(pos + 1);
+
+            std::shared_ptr<FSObject> node = resolvePath(parent);
+            node = node->resolve();
+            if (auto dir = dynamic_cast<Directory*>(node.get())) {
+                if (dir->get(child)) throw std::runtime_error("Destination already exists");
+                node = dir->touch(child);
+            }
+        }
+        node = node->resolve();
+        if (auto file = dynamic_cast<File*>(node.get())) {
+            file->write(data);
+            return;
+        }
+        throw std::runtime_error("Is a directory");
+    } catch (const std::runtime_error& e) {
+        throw FileSystemError(e.what(), path);
+    }
+}
 
 void Dispatcher::rm(const std::string& path) {
     try {
