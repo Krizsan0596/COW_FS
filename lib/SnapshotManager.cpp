@@ -1,4 +1,5 @@
 #include "SnapshotManager.hpp"
+#include "Dispatcher.hpp"
 #include "Directory.hpp"
 #include <cstddef>
 #include <memory>

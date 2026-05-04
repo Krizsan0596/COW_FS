@@ -275,10 +275,11 @@ void Dispatcher::rm(const std::string& path) {
         size_t pos = normalizedPath.rfind('/');
         if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
 
-        std::string parent = (pos == 0) ? normalizedPath.substr(0, pos) : normalizedPath.substr(0, 1);
+        std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
         std::string child = normalizedPath.substr(pos + 1);
 
         std::shared_ptr<FSObject> node = resolvePath(parent);
+        node = node->resolve();
         if (auto dir = dynamic_cast<Directory*>(node.get())) {
             dir->removeFile(child);
             return;
@@ -295,10 +296,11 @@ void Dispatcher::rmdir(const std::string& path) {
         size_t pos = normalizedPath.rfind('/');
         if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
 
-        std::string parent = (pos == 0) ? normalizedPath.substr(0, pos) : normalizedPath.substr(0, 1);
+        std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
         std::string child = normalizedPath.substr(pos + 1);
 
         std::shared_ptr<FSObject> node = resolvePath(parent);
+        node = node->resolve();
         if (auto dir = dynamic_cast<Directory*>(node.get())) {
             dir->removeDir(child);
             return;
@@ -315,7 +317,7 @@ void Dispatcher::mkdir(const std::string& path) {
         size_t pos = normalizedPath.rfind('/');
         if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
 
-        std::string parent = (pos == 0) ? normalizedPath.substr(0, pos) : normalizedPath.substr(0, 1);
+        std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
         std::string child = normalizedPath.substr(pos + 1);
 
         std::shared_ptr<FSObject> node = resolvePath(parent);
@@ -324,7 +326,8 @@ void Dispatcher::mkdir(const std::string& path) {
             try {
                 dir->get(child);
                 throw std::runtime_error("Directory already exists");
-            } catch (const std::runtime_error&) {
+            } catch (const std::runtime_error& inner) {
+                if (std::string(inner.what()) == "Directory already exists") throw;
                 dir->mkdir(child);
                 return;
             }
@@ -347,14 +350,21 @@ void Dispatcher::slink(const std::string& dstPath, const std::string& srcPath) {
         size_t pos = normalizedPath.rfind('/');
         if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
 
-        std::string parent = (pos == 0) ? normalizedPath.substr(0, pos) : normalizedPath.substr(0, 1);
+        std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
         std::string child = normalizedPath.substr(pos + 1);
 
         std::shared_ptr<FSObject> node = resolvePath(parent);
         node = node->resolve();
         if (auto dir = dynamic_cast<Directory*>(node.get())) {
-            if (dir->get(child)) throw std::runtime_error("Destination already exists");
-            dir->ln(child, srcNode);    
+            try {
+                dir->get(child);
+                throw std::runtime_error("Destination already exists");
+            } catch (const std::runtime_error& inner) {
+                if (std::string(inner.what()) == "Destination already exists") throw;
+            }
+            dir->ln(child, srcNode);
+        } else {
+            throw std::runtime_error("Parent is not a directory");
         }
     } catch (std::runtime_error& e) {
         throw FileSystemError(e.what(), dstPath);
@@ -376,14 +386,19 @@ void Dispatcher::hlink(const std::string& dstPath, const std::string& srcPath) {
         size_t pos = normalizedPath.rfind('/');
         if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
 
-        std::string parent = (pos == 0) ? normalizedPath.substr(0, pos) : normalizedPath.substr(0, 1);
+        std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
         std::string child = normalizedPath.substr(pos + 1);
 
         std::shared_ptr<FSObject> node = resolvePath(parent);
         node = node->resolve();
         auto dir = dynamic_cast<Directory*>(node.get());
         if (!dir) throw std::runtime_error("Destination parent is not a directory");
-        if (dir->get(child)) throw std::runtime_error("Destination already exists");
+        try {
+            dir->get(child);
+            throw std::runtime_error("Destination already exists");
+        } catch (const std::runtime_error& inner) {
+            if (std::string(inner.what()) == "Destination already exists") throw;
+        }
         dir->touch(child, *dynamic_cast<File*>(srcNode.get()));
     } catch (const std::runtime_error& e) {
         throw FileSystemError(e.what(), dstPath);
@@ -391,9 +406,10 @@ void Dispatcher::hlink(const std::string& dstPath, const std::string& srcPath) {
 }
 
 void Dispatcher::createSnapshot() const {
-    snapshotManager->createSnapshot(root);
+    snapshotManager->createSnapshot(*this);
 }
 
 void Dispatcher::restoreSnapshot(int index) {
-    root = snapshotManager->restoreSnapshot(index);
+    if (index < 0) throw std::runtime_error("Snapshot index must not be negative");
+    snapshotManager->restoreSnapshot(static_cast<size_t>(index), *this);
 }
