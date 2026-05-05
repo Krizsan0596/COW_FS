@@ -4,7 +4,6 @@
 #include "Symlink.hpp"
 #include "Util.hpp"
 #include <cstddef>
-#include <cstring>
 #include <exception>
 #include <memory>
 #include <sstream>
@@ -243,7 +242,7 @@ void Dispatcher::write(const std::string& path, const std::string& data) {
         try {
             node = resolvePath(normalizedPath);
         } catch (const std::runtime_error& e) {
-            if (strcmp("No such file or directory", e.what()) != 0) throw;
+            if (std::string(e.what()) != "No such file or directory") throw;
 
             size_t pos = normalizedPath.rfind('/');
             if (pos == std::string::npos) throw std::runtime_error("Only absolute paths allowed");
@@ -251,11 +250,12 @@ void Dispatcher::write(const std::string& path, const std::string& data) {
             std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
             std::string child = normalizedPath.substr(pos + 1);
 
-            std::shared_ptr<FSObject> node = resolvePath(parent);
-            node = node->resolve();
-            if (auto dir = dynamic_cast<Directory*>(node.get())) {
-                if (dir->get(child)) throw std::runtime_error("Destination already exists");
+            std::shared_ptr<FSObject> parentNode = resolvePath(parent);
+            parentNode = parentNode->resolve();
+            if (auto dir = dynamic_cast<Directory*>(parentNode.get())) {
                 node = dir->touch(child);
+            } else {
+                throw std::runtime_error("Parent is not a directory");
             }
         }
         node = node->resolve();
