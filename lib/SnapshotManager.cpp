@@ -20,7 +20,7 @@ void SnapshotManager::createSnapshot(const Dispatcher& globalDispatch) {
 }
 
 void SnapshotManager::restoreSnapshot(size_t index, Dispatcher& globalDispatch) const {
-    if (index < 0 or index > SNAPSHOT_COUNT - 1) throw std::runtime_error("Snapshot index out of range");
+    if (index > SNAPSHOT_COUNT - 1) throw std::runtime_error("Snapshot index out of range");
     if (index >= count or snapshots[index] == nullptr) throw std::runtime_error("Snapshot does not exist");
-    globalDispatch.root = std::make_unique<Directory>(*snapshots[index]);
+    globalDispatch.root = std::make_shared<Directory>(*snapshots[index]);
 }

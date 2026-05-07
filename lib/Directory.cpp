@@ -2,6 +2,7 @@
 #include "FSObject.hpp"
 #include "File.hpp"
 #include "Symlink.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <iostream>
 #include <memory>
