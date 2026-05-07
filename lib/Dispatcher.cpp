@@ -248,6 +248,7 @@ void Dispatcher::write(const std::string& path, const std::string& data) {
 
             std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
             std::string child = normalizedPath.substr(pos + 1);
+            if (child.empty()) throw std::runtime_error("Invalid path");
 
             node = resolvePath(parent);
             node = node->resolve();
@@ -282,6 +283,7 @@ void Dispatcher::rm(const std::string& path) {
 
         std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
         std::string child = normalizedPath.substr(pos + 1);
+        if (child.empty()) throw std::runtime_error("Invalid path");
 
         std::shared_ptr<FSObject> node = resolvePath(parent);
         node = node->resolve();
@@ -303,6 +305,7 @@ void Dispatcher::rmdir(const std::string& path) {
 
         std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
         std::string child = normalizedPath.substr(pos + 1);
+        if (child.empty()) throw std::runtime_error("Invalid path");
 
         std::shared_ptr<FSObject> node = resolvePath(parent);
         node = node->resolve();
@@ -324,6 +327,7 @@ void Dispatcher::mkdir(const std::string& path) {
 
         std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
         std::string child = normalizedPath.substr(pos + 1);
+        if (child.empty()) throw std::runtime_error("Invalid path");
 
         std::shared_ptr<FSObject> node = resolvePath(parent);
         node = node->resolve();
@@ -357,6 +361,7 @@ void Dispatcher::slink(const std::string& dstPath, const std::string& srcPath) {
 
         std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
         std::string child = normalizedPath.substr(pos + 1);
+        if (child.empty()) throw std::runtime_error("Invalid path");
 
         std::shared_ptr<FSObject> node = resolvePath(parent);
         node = node->resolve();
@@ -393,6 +398,7 @@ void Dispatcher::hlink(const std::string& dstPath, const std::string& srcPath) {
 
         std::string parent = (pos == 0) ? "/" : normalizedPath.substr(0, pos);
         std::string child = normalizedPath.substr(pos + 1);
+        if (child.empty()) throw std::runtime_error("Invalid path");
 
         std::shared_ptr<FSObject> node = resolvePath(parent);
         node = node->resolve();

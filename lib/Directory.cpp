@@ -24,7 +24,7 @@ Directory::Directory(const Directory& other)
             contents[i] = std::make_shared<Directory>(*dir);
         } else if (File* file = dynamic_cast<File*>(other.contents[i].get())) {
             contents[i] = std::make_shared<File>(*file);
-        } else if (Symlink* symlink = dynamic_cast<Symlink*>(other.contents[i].get())) { // Symlink cloning doesn't work, fix later.
+        } else if (Symlink* symlink = dynamic_cast<Symlink*>(other.contents[i].get())) {
             contents[i] = std::make_shared<Symlink>(*symlink);
         } else {
             throw std::logic_error("Unknown FSObject type during Directory copy");
@@ -87,9 +87,13 @@ void Directory::list() {
             std::cout << dir->getName() << "/\n";
         }
         else if (auto link = dynamic_cast<Symlink*>(contents[i].get())) {
-            if (dynamic_cast<Directory*>(link->resolve().get())) {
-                std::cout << link->getName() << "/\n";
-            }
+            bool isDir = false;
+            try {
+                if (dynamic_cast<Directory*>(link->resolve().get())) {
+                    isDir = true;
+                }
+            } catch (const std::runtime_error&) {}
+            std::cout << link->getName() << (isDir ? "/\n" : "\n");
         }
         else std::cout << contents[i]->getName() << '\n';
     }
