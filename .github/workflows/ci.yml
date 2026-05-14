@@ -16,12 +16,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Cache apt packages
-      uses: actions/cache@v4
-      with:
-        path: /var/cache/apt/archives
-        key: apt-tidy-${{ runner.os }}
-
     - name: Install clang-tidy
       run: sudo apt-get update && sudo apt-get install -y clang-tidy cmake ninja-build
 
@@ -45,12 +39,6 @@ jobs:
 
     - name: Prepare scan-build log dir
       run: mkdir -p scan-build-reports
-
-    - name: Cache apt packages
-      uses: actions/cache@v4
-      with:
-        path: /var/cache/apt/archives
-        key: apt-analyzer-${{ runner.os }}
 
     - name: Install scan-build
       run: sudo apt-get update && sudo apt-get install -y clang-tools cmake ninja-build
@@ -158,12 +146,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-
-    - name: Cache apt packages
-      uses: actions/cache@v4
-      with:
-        path: /var/cache/apt/archives
-        key: apt-coverage-${{ runner.os }}
 
     - name: Install coverage tools
       run: sudo apt-get update && sudo apt-get install -y cmake ninja-build lcov
