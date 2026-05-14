@@ -103,17 +103,20 @@ jobs:
           - os: ubuntu-latest
             build_type: Release
             cpp_compiler: clang++
-            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -stdlib=libc++"
-            cxx_link_flags: "-fsanitize=memory -stdlib=libc++ -lc++abi"
+            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -nostdinc++ -I${GITHUB_WORKSPACE}/libcxx-msan/include/c++/v1"
+            cxx_link_flags: "-fsanitize=memory -L${GITHUB_WORKSPACE}/libcxx-msan/lib -Wl,-rpath,${GITHUB_WORKSPACE}/libcxx-msan/lib -lc++ -lc++abi -lunwind"
             asan_options: "detect_leaks=1:halt_on_error=1"
             ubsan_options: "print_stacktrace=1"
+            MSAN_OPTIONS: "abort_on_error=1:print_stacktrace=1"
+
           - os: ubuntu-latest
             build_type: Debug
             cpp_compiler: clang++
-            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -stdlib=libc++"
-            cxx_link_flags: "-fsanitize=memory -stdlib=libc++ -lc++abi"
+            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -nostdinc++ -I${GITHUB_WORKSPACE}/libcxx-msan/include/c++/v1"
+            cxx_link_flags: "-fsanitize=memory -L${GITHUB_WORKSPACE}/libcxx-msan/lib -Wl,-rpath,${GITHUB_WORKSPACE}/libcxx-msan/lib -lc++ -lc++abi -lunwind"
             asan_options: "detect_leaks=1:halt_on_error=1"
             ubsan_options: "print_stacktrace=1"
+            MSAN_OPTIONS: "abort_on_error=1:print_stacktrace=1"
         exclude:
           - os: windows-latest
             cpp_compiler: g++
@@ -125,9 +128,34 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install libc++ (Ubuntu)
-      if: matrix.os == 'ubuntu-latest' && matrix.cpp_compiler == 'clang++'
-      run: sudo apt-get update && sudo apt-get install -y libc++-dev libc++abi-dev
+    - name: Cache Instrumented libc++
+      if: matrix.cpp_compiler == 'clang++' && matrix.os == 'ubuntu-latest'
+      id: cache-libcxx
+      uses: actions/cache@v4
+      with:
+        path: libcxx-msan
+        key: ${{ runner.os }}-libcxx-msan-v1 # Increment v1 to force a rebuild
+
+    - name: Build Instrumented libc++
+      if: matrix.cpp_compiler == 'clang++' && matrix.os == 'ubuntu-latest' && steps.cache-libcxx.outputs.cache-hit != 'true'
+      run: |
+        sudo apt-get update && sudo apt-get install -y ninja-build
+        # Added -b release/18.x to match your installed Clang 18 compiler
+        git clone --depth 1 -b release/18.x https://github.com/llvm/llvm-project.git
+        cmake -S llvm-project/runtimes -B llvm-project/build -G Ninja \
+          -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
+          -DLIBCXXABI_USE_LLVM_UNWINDER=ON \
+          -DLIBCXX_INCLUDE_TESTS=OFF \
+          -DLIBCXXABI_INCLUDE_TESTS=OFF \
+          -DLIBCXX_INCLUDE_BENCHMARKS=OFF \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_COMPILER=clang \
+          -DCMAKE_CXX_COMPILER=clang++ \
+          -DLLVM_USE_SANITIZER=Memory
+        ninja -C llvm-project/build cxx cxxabi unwind
+        mkdir -p libcxx-msan/lib libcxx-msan/include
+        cp -r llvm-project/build/lib/ libcxx-msan/
+        cp -r llvm-project/build/include/ libcxx-msan/
 
     - name: Set reusable strings
       id: strings
