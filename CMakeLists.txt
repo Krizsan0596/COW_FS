@@ -53,20 +53,22 @@ target_link_libraries(
         Dispatcher
 )
 
-# Test executable with CPORTA defined
-add_executable(${PROJECT_NAME}_tests src/main.cpp)
-target_include_directories(${PROJECT_NAME}_tests PRIVATE ${PROJECT_INCLUDE_DIRS})
-target_compile_definitions(${PROJECT_NAME}_tests PRIVATE CPORTA)
-target_link_libraries(
-    ${PROJECT_NAME}_tests
-    PRIVATE
-        Block
-        Inode
-        File
-        Symlink
-        Directory
-        SnapshotManager
-        Dispatcher
-)
+if(BUILD_TESTING)
+    # Test executable with CPORTA defined
+    add_executable(${PROJECT_NAME}_tests src/main.cpp)
+    target_include_directories(${PROJECT_NAME}_tests PRIVATE ${PROJECT_INCLUDE_DIRS})
+    target_compile_definitions(${PROJECT_NAME}_tests PRIVATE CPORTA)
+    target_link_libraries(
+        ${PROJECT_NAME}_tests
+        PRIVATE
+            Block
+            Inode
+            File
+            Symlink
+            Directory
+            SnapshotManager
+            Dispatcher
+    )
 
-add_test(NAME ${PROJECT_NAME}_tests COMMAND ${PROJECT_NAME}_tests)
+    add_test(NAME ${PROJECT_NAME}_tests COMMAND ${PROJECT_NAME}_tests)
+endif()

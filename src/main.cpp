@@ -5,7 +5,9 @@
 #include "Dispatcher.hpp"
 #include "SnapshotManager.hpp"
 #include "Util.hpp"
+#ifdef CPORTA
 #include "gtest_lite.h"
+#endif
 #include <iostream>
 #include <string>
 #include <sstream>
