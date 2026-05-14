@@ -196,7 +196,7 @@ std::shared_ptr<FSObject> Dispatcher::resolvePath(const std::string& path) const
             if (auto dir = dynamic_cast<Directory*>(currentObject.get())) {
                 currentObject = dir->get(item);
             }
-            else if (auto file = dynamic_cast<File*>(currentObject.get())) {
+            else if (dynamic_cast<File*>(currentObject.get())) {
                 throw std::runtime_error("No such file or directory");
             }
         }
