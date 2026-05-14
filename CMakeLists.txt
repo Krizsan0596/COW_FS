@@ -8,11 +8,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(CTest)
 
-set(PROJECT_WARNING_FLAGS
-    -Wall
-    -Werror
-    -pedantic
-)
+if(WIN32)
+    set(PROJECT_WARNING_FLAGS
+        /W4
+        /WX
+    )
+else()
+    set(PROJECT_WARNING_FLAGS
+        -Wall
+        -Werror
+        -pedantic
+    )
+endif()
 
 set(PROJECT_INCLUDE_DIRS
     "${PROJECT_SOURCE_DIR}/lib"
