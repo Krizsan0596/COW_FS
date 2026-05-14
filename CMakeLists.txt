@@ -12,6 +12,8 @@ if(WIN32)
     set(PROJECT_WARNING_FLAGS
         /W4
         /WX
+        /EHsc
+        /permissive-
     )
 else()
     set(PROJECT_WARNING_FLAGS
