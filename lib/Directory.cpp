@@ -2,48 +2,92 @@
 #include "FSObject.hpp"
 #include "File.hpp"
 #include "Symlink.hpp"
+#include "Util.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
-#include <algorithm>
 
-Directory::Directory(const std::string& dirName) : FSObject(dirName), size(0), capacity(8), contents(new std::shared_ptr<FSObject>[capacity]) {}
+Directory::Directory(const std::string& dirName)
+    : FSObject(dirName), size(0), capacity(8), contents(std::make_unique<std::shared_ptr<FSObject>[]>(capacity)) {}
 
 Directory::Directory(const Directory& other)
     : FSObject(other),
       std::enable_shared_from_this<Directory>(),
       size(other.size),
       capacity(other.capacity),
-      contents(new std::shared_ptr<FSObject>[capacity]) {
+      contents(std::make_unique<std::shared_ptr<FSObject>[]>(capacity)) {
+
+    auto hardlink_map = makeRemapArray<hardlink_remap>();
+
+    auto symlink_map = makeRemapArray<symlink_remap>();
+
     for (std::size_t i = 0; i < size; i++) {
         if (!other.contents[i]) {
             contents[i].reset();
             continue;
         }
+
         if (Directory* dir = dynamic_cast<Directory*>(other.contents[i].get())) {
             contents[i] = std::make_shared<Directory>(*dir);
         } else if (File* file = dynamic_cast<File*>(other.contents[i].get())) {
+            bool hlink = false;
+            for (size_t j = 0; j < hardlink_map.count; j++) {
+                if (file->inode == hardlink_map.data[j].oldInode) {
+                    contents[i] = std::make_shared<File>(file->getName(), *hardlink_map.data[j].newFile.get());
+                    hlink = true;
+                    break;
+                }
+            }
+            if (hlink) continue;
             contents[i] = std::make_shared<File>(*file);
+            if (hardlink_map.capacity == hardlink_map.count) resizeRemapArray(hardlink_map);
+            hardlink_map.data[hardlink_map.count++] = {file->inode, std::static_pointer_cast<File>(contents[i])};
         } else if (Symlink* symlink = dynamic_cast<Symlink*>(other.contents[i].get())) {
             contents[i] = std::make_shared<Symlink>(*symlink);
         } else {
             throw std::logic_error("Unknown FSObject type during Directory copy");
         }
+
+        if (symlink_map.capacity == symlink_map.count) resizeRemapArray(symlink_map);
+        symlink_map.data[symlink_map.count++] = {other.contents[i], contents[i]};
+    }
+
+    auto pending_dirs = makeRemapArray<Directory*>();
+    pending_dirs.data[pending_dirs.count++] = this;
+
+    while (pending_dirs.count > 0) {
+        Directory* current = pending_dirs.data[--pending_dirs.count];
+
+        for (std::size_t i = 0; i < current->size; ++i) {
+            if (!current->contents[i]) {
+                continue;
+            }
+
+            if (Symlink* link = dynamic_cast<Symlink*>(current->contents[i].get())) {
+                if (auto old_target = link->target.lock()) {
+                    for (std::size_t j = 0; j < symlink_map.count; ++j) {
+                        if (symlink_map.data[j].oldTarget == old_target) {
+                            link->target = symlink_map.data[j].newTarget;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (Directory* child_dir = dynamic_cast<Directory*>(current->contents[i].get())) {
+                if (pending_dirs.capacity == pending_dirs.count) resizeRemapArray(pending_dirs);
+                pending_dirs.data[pending_dirs.count++] = child_dir;
+            }
+        }
     }
 }
 
-Directory::~Directory() {
-    delete[] contents;
-}
-
 void Directory::resizeContents() {
-    std::shared_ptr<FSObject> *new_contents = new std::shared_ptr<FSObject>[capacity * 2];
-    std::move(contents, contents + size, new_contents);
-    delete[] contents;
-    contents = new_contents;
-    capacity *= 2;
+    const std::size_t newCapacity = growByHalf(capacity);
+    contents = resizeArray(std::move(contents), size, newCapacity);
+    capacity = newCapacity;
 }
 
 std::shared_ptr<File> Directory::touch(const std::string& child) {

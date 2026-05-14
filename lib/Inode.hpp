@@ -11,7 +11,7 @@ class Block;
 class Inode : public StorageObject {
 private:
     std::size_t size;
-    std::shared_ptr<Block> *blocks;
+    std::unique_ptr<std::shared_ptr<Block>[]> blocks;
 
 public:
     Inode() = delete;
@@ -20,7 +20,7 @@ public:
     Inode& operator=(const Inode& other) = delete;
     Inode(Inode&& other) = delete;
     Inode& operator=(Inode&& other) = delete;
-    ~Inode();
+    ~Inode() = default;
     std::string read() const override;
     void write(const std::string& data) override;
     void clear() override;
