@@ -88,13 +88,10 @@ void Directory::list() {
             std::cout << dir->getName() << "/\n";
         }
         else if (auto link = dynamic_cast<Symlink*>(contents[i].get())) {
-            bool isDir = false;
-            try {
-                if (dynamic_cast<Directory*>(link->resolve().get())) {
-                    isDir = true;
-                }
-            } catch (const std::runtime_error&) {}
-            std::cout << link->getName() << (isDir ? "/\n" : "\n");
+            if (auto dir = dynamic_cast<Directory*>(link->resolve().get())) {
+                std::cout << link->getName() << "/\n";
+            }
+            else std::cout << contents[i]->getName() << '\n';
         }
         else std::cout << contents[i]->getName() << '\n';
     }
