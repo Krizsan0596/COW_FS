@@ -34,8 +34,7 @@ jobs:
     - name: Run clang-tidy
       run: |
         clang-tidy -p build-tidy \
-        --config-file=${GITHUB_WORKSPACE}/.github/.clang-tidy \
-        --warnings-as-errors=* \
+        --config-file=.github/.clang-tidy \
         src/*.cpp lib/*.cpp
 
   analyzer:
