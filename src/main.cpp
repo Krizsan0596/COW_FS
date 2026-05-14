@@ -81,6 +81,31 @@ int main() {
         EXPECT_TRUE(copy.get("newdir") != nullptr);
     } END
 
+    TEST(DirectoryTest, DeepCopyHandlesNestedDirectoriesIteratively) {
+        constexpr int depth = 10000;
+
+        Directory root("root");
+        Directory* current = &root;
+        for (int i = 0; i < depth; ++i) {
+            const std::string name = "dir" + std::to_string(i);
+            current->mkdir(name);
+            current = dynamic_cast<Directory*>(current->get(name).get());
+        }
+        current->touch("leaf.txt")->write("payload");
+
+        Directory copy = root;
+
+        Directory* node = &copy;
+        for (int i = 0; i < depth; ++i) {
+            node = dynamic_cast<Directory*>(node->get("dir" + std::to_string(i)).get());
+        }
+
+        ASSERT_EQ(true, node != nullptr);
+        auto leaf = std::dynamic_pointer_cast<File>(node->get("leaf.txt"));
+        ASSERT_EQ(true, leaf != nullptr);
+        EXPECT_EQ(std::string("payload"), leaf->read());
+    } END
+
     // 4. Dispatcher & Snapshot Tests
     TEST(DispatcherTest, PathResolutionAndBasicOps) {
         Dispatcher disp;
