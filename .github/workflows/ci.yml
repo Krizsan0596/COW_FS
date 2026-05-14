@@ -70,18 +70,42 @@ jobs:
         cpp_compiler: [g++, clang++, cl]
         include:
           - os: windows-latest
+            build_type: Release
+            cpp_compiler: cl
+            cxx_sanitize_flags: "/fsanitize=address /Zi"
+            cxx_link_flags: "/DEBUG /INCREMENTAL:NO"
+            asan_options: "abort_on_error=1"
+            ubsan_options: ""
+          - os: windows-latest
+            build_type: Debug
             cpp_compiler: cl
             cxx_sanitize_flags: "/fsanitize=address /Zi"
             cxx_link_flags: "/DEBUG /INCREMENTAL:NO"
             asan_options: "abort_on_error=1"
             ubsan_options: ""
           - os: ubuntu-latest
+            build_type: Release
             cpp_compiler: g++
             cxx_sanitize_flags: "-fsanitize=address,undefined -fno-omit-frame-pointer -g"
             cxx_link_flags: "-fsanitize=address,undefined"
             asan_options: "detect_leaks=1:halt_on_error=1"
             ubsan_options: "print_stacktrace=1"
           - os: ubuntu-latest
+            build_type: Debug
+            cpp_compiler: g++
+            cxx_sanitize_flags: "-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+            cxx_link_flags: "-fsanitize=address,undefined"
+            asan_options: "detect_leaks=1:halt_on_error=1"
+            ubsan_options: "print_stacktrace=1"
+          - os: ubuntu-latest
+            build_type: Release
+            cpp_compiler: clang++
+            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g"
+            cxx_link_flags: "-fsanitize=memory"
+            asan_options: "detect_leaks=1:halt_on_error=1"
+            ubsan_options: "print_stacktrace=1"
+          - os: ubuntu-latest
+            build_type: Debug
             cpp_compiler: clang++
             cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g"
             cxx_link_flags: "-fsanitize=memory"
