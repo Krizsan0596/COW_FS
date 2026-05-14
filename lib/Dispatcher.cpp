@@ -179,7 +179,7 @@ std::shared_ptr<FSObject> Dispatcher::resolvePath(const std::string& path) const
         std::stringstream pathStream(normalizedPath);
         std::string item;
         int depth = 0;
-        std::shared_ptr<FSObject> visited[MAX_PATH_DEPTH];
+        auto visited = std::make_unique<std::shared_ptr<FSObject>[]>(MAX_PATH_DEPTH);
         while (std::getline(pathStream, item, '/')) {
             if (item == "") continue;
             if (item == ".") continue;
