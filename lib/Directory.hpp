@@ -1,16 +1,17 @@
 #pragma once
 
 #include "FSObject.hpp"
-#include "File.hpp"
 
 #include <memory>
 #include <string>
+
+class File;
 
 class Directory : public FSObject, public std::enable_shared_from_this<Directory> {
 private:
     size_t size;
     size_t capacity;
-    std::shared_ptr<FSObject> *contents;
+    std::unique_ptr<std::shared_ptr<FSObject>[]> contents;
     void resizeContents();
 
 public:
@@ -20,7 +21,7 @@ public:
     Directory(Directory&& other) = delete;
     Directory& operator=(const Directory& other) = delete;
     Directory& operator=(Directory&& other) = delete;
-    ~Directory();
+    ~Directory() = default;
     std::shared_ptr<FSObject> resolve(int depth = 0) override;
     void list();
     std::shared_ptr<FSObject>& get(const std::string& child);

@@ -2,6 +2,7 @@
 
 #include "FSObject.hpp"
 #include "Inode.hpp"
+#include "Directory.hpp"
 
 #include <memory>
 
@@ -20,4 +21,5 @@ public:
     std::shared_ptr<FSObject> resolve(int depth = 0) override;
     std::string read() const;
     void write(const std::string& data);
+    friend Directory::Directory(const Directory& other);
 };
