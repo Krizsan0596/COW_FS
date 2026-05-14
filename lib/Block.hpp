@@ -13,5 +13,5 @@ public:
     Block() = delete;
     Block(const std::string& Data);
     std::string read() const;
-    std::shared_ptr<Block> write(const char data[BLOCK_SIZE]);
+    std::shared_ptr<Block> write(const char newData[BLOCK_SIZE]);
 };

@@ -14,8 +14,8 @@ std::string Block::read() const {
     return std::string(data, BLOCK_SIZE);
 }
 
-std::shared_ptr<Block> Block::write(const char data[BLOCK_SIZE]) {
-    if (std::memcmp(data, this->data, BLOCK_SIZE) == 0) return shared_from_this();
-    std::shared_ptr<Block> new_block = std::make_shared<Block>(std::string(data, BLOCK_SIZE));
+std::shared_ptr<Block> Block::write(const char newData[BLOCK_SIZE]) {
+    if (std::memcmp(newData, this->data, BLOCK_SIZE) == 0) return shared_from_this();
+    std::shared_ptr<Block> new_block = std::make_shared<Block>(std::string(newData, BLOCK_SIZE));
     return new_block;
 }

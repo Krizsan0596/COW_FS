@@ -48,7 +48,10 @@ void Inode::write(const std::string& data) {
         std::string chunk = data.substr(i, BLOCK_SIZE);
         size_t index = i / BLOCK_SIZE;
         if (!blocks[index]) blocks[index] = std::make_shared<Block>(chunk);
-        else blocks[index] = blocks[index]->write(chunk.data());
+        else {
+            if (chunk.size() < BLOCK_SIZE) chunk.resize(BLOCK_SIZE, '\0');
+            blocks[index] = blocks[index]->write(chunk.data());
+        }
     }
 }
 
