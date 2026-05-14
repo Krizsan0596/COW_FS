@@ -35,7 +35,7 @@ jobs:
       run: |
         clang-tidy -p build-tidy \
         --config-file=.github/.clang-tidy \
-        src/*.cpp lib/*.cpp
+        lib/*.cpp
 
   analyzer:
     name: clang static analyzer

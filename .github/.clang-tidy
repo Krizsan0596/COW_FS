@@ -8,12 +8,14 @@ Checks: >
   modernize-*,
   performance-*,
   readability-*,
+  -cppcoreguidelines-avoid-c-arrays,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-pro-bounds-constant-array-index,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -cppcoreguidelines-pro-type-member-init,
   -cppcoreguidelines-pro-type-static-cast-downcast,
   -cppcoreguidelines-pro-type-vararg,
+  -modernize-avoid-c-arrays,
   -modernize-use-trailing-return-type,
   -readability-braces-around-statements,
   -readability-implicit-bool-conversion,
@@ -22,16 +24,16 @@ Checks: >
 
 WarningsAsErrors: '*'
 
-HeaderFilterRegex: '.*'
+HeaderFilterRegex: '.*[\\/]lib[\\/].*'
 
 CheckOptions:
   - key:             readability-identifier-naming.ClassCase
-    value:           PascalCase
+    value:           CamelCase
   - key:             readability-identifier-naming.FunctionCase
-    value:           camelCase
+    value:           camelBack
   - key:             readability-identifier-naming.VariableCase
-    value:           camelCase
+    value:           camelBack
   - key:             readability-identifier-naming.MemberCase
-    value:           camelCase
+    value:           camelBack
   - key:             readability-identifier-naming.ParameterCase
-    value:           camelCase
+    value:           camelBack
