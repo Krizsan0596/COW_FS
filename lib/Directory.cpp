@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <algorithm>
 
 Directory::Directory(const std::string& dirName) : FSObject(dirName), size(0), capacity(8), contents(new std::shared_ptr<FSObject>[capacity]) {}
 
