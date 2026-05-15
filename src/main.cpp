@@ -17,10 +17,10 @@ int main() {
     // 1. Inode Tests
     TEST(InodeTest, BasicReadWrite) {
         Inode inode("Hello, world!");
-        EXPECT_EQ(std::string("Hello, world!"), inode.read());
+        EXPECT_EQ("Hello, world!", inode.read());
         
         inode.write("New data");
-        EXPECT_EQ(std::string("New data"), inode.read());
+        EXPECT_EQ("New data", inode.read());
         
         std::string largeData(1000, 'A');
         inode.write(largeData);
@@ -30,11 +30,11 @@ int main() {
     // 2. File Tests
     TEST(FileTest, BasicOperations) {
         File file("test.txt", "Initial content");
-        EXPECT_EQ(std::string("test.txt"), file.getName());
-        EXPECT_EQ(std::string("Initial content"), file.read());
+        EXPECT_EQ("test.txt", file.getName());
+        EXPECT_EQ("Initial content", file.read());
         
         file.write("Updated content");
-        EXPECT_EQ(std::string("Updated content"), file.read());
+        EXPECT_EQ("Updated content", file.read());
     } END
 
     TEST(FileTest, CopyBehavior) {
@@ -45,8 +45,8 @@ int main() {
         
         copy.write("Modified content");
         
-        EXPECT_EQ(std::string("Shared content"), original.read());
-        EXPECT_EQ(std::string("Modified content"), copy.read());
+        EXPECT_EQ("Shared content", original.read());
+        EXPECT_EQ("Modified content", copy.read());
     } END
 
     // 3. Directory Tests
@@ -55,8 +55,8 @@ int main() {
         dir.mkdir("subdir");
         
         std::shared_ptr<FSObject> obj = dir.get("subdir");
-        EXPECT_EQ(std::string("subdir"), obj->getName());
-        EXPECT_TRUE(dynamic_cast<Directory*>(obj.get()) != nullptr);
+        EXPECT_EQ("subdir", obj->getName());
+        EXPECT_NE(nullptr, dynamic_cast<Directory*>(obj.get()));
         
         EXPECT_THROW(dir.get("nonexistent"), std::runtime_error&);
     } END
@@ -68,17 +68,17 @@ int main() {
         root.ln("link", file);
         
         Directory copy = root;
-        EXPECT_EQ(std::string("subdir"), copy.get("subdir")->getName());
-        EXPECT_EQ(std::string("link"), copy.get("link")->getName());
+        EXPECT_EQ("subdir", copy.get("subdir")->getName());
+        EXPECT_EQ("link", copy.get("link")->getName());
         
         // Check if symlink in copy resolves to the file in the copy (deep copy/re-linking)
         auto link = dynamic_cast<Symlink*>(copy.get("link").get());
-        EXPECT_TRUE(link != nullptr);
+        EXPECT_NE(nullptr, link);
         EXPECT_EQ(copy.get("file.txt"), link->resolve());
         
         copy.mkdir("newdir");
         EXPECT_THROW(root.get("newdir"), std::runtime_error&);
-        EXPECT_TRUE(copy.get("newdir") != nullptr);
+        EXPECT_NE(nullptr, copy.get("newdir"));
     } END
 
     // 4. Dispatcher & Snapshot Tests

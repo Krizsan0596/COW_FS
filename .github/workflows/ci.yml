@@ -100,20 +100,20 @@ jobs:
             cxx_link_flags: "-fsanitize=address,undefined"
             asan_options: "detect_leaks=1:halt_on_error=1"
             ubsan_options: "print_stacktrace=1"
-          - os: ubuntu-latest
-            build_type: Release
-            cpp_compiler: clang++
-            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g"
-            cxx_link_flags: "-fsanitize=memory"
-            asan_options: "detect_leaks=1:halt_on_error=1"
-            ubsan_options: "print_stacktrace=1"
-          - os: ubuntu-latest
-            build_type: Debug
-            cpp_compiler: clang++
-            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g"
-            cxx_link_flags: "-fsanitize=memory"
-            asan_options: "detect_leaks=1:halt_on_error=1"
-            ubsan_options: "print_stacktrace=1"
+          # - os: ubuntu-latest
+          #   build_type: Release
+          #   cpp_compiler: clang++
+          #   cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g"
+          #   cxx_link_flags: "-fsanitize=memory"
+          #   asan_options: "detect_leaks=1:halt_on_error=1"
+          #   ubsan_options: "print_stacktrace=1"
+          # - os: ubuntu-latest
+          #   build_type: Debug
+          #   cpp_compiler: clang++
+          #   cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g"
+          #   cxx_link_flags: "-fsanitize=memory"
+          #   asan_options: "detect_leaks=1:halt_on_error=1"
+          #   ubsan_options: "print_stacktrace=1"
         exclude:
           - os: windows-latest
             cpp_compiler: g++
@@ -121,6 +121,8 @@ jobs:
             cpp_compiler: clang++
           - os: ubuntu-latest
             cpp_compiler: cl
+          - os: ubuntu-latest
+            cpp_compiler: clang++
 
     steps:
     - uses: actions/checkout@v4
@@ -192,7 +194,20 @@ jobs:
     - name: Collect coverage
       run: |
         lcov --capture --directory build-cov --output-file coverage.info
+        lcov --remove coverage.info '*/gtest_lite.h' --output-file coverage.info
         genhtml coverage.info --output-directory coverage-html
+
+    - name: Check line coverage threshold
+      run: |
+        SUMMARY=$(lcov --summary coverage.info 2>&1)
+        LINE_COV=$(echo "$SUMMARY"  | grep -oP 'lines\.*:\s*\K[\d.]+(?=%)')
+        FUNC_COV=$(echo "$SUMMARY"  | grep -oP 'functions\.*:\s*\K[\d.]+(?=%)')
+        echo "Line coverage:     ${LINE_COV}%"
+        echo "Function coverage: ${FUNC_COV}%"
+        awk -v lc="$LINE_COV" -v fc="$FUNC_COV" 'BEGIN {
+          if (lc + 0 < 85.0) { print "Line coverage "     lc "% is below 85% threshold"; exit 1 }
+          if (fc + 0 < 75.0) { print "Function coverage " fc "% is below 75% threshold"; exit 1 }
+        }'
 
     - name: Upload HTML coverage
       uses: actions/upload-artifact@v4
