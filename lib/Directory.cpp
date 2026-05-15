@@ -23,7 +23,7 @@ Directory::Directory(const Directory& other)
 
     auto symlink_map = makeRemapArray<symlink_remap>();
 
-    auto copyDirectory = [&hardlink_map, &symlink_map](auto&& self, const Directory& source, Directory& destination) -> void {
+    auto copyDirectory = [&hardlink_map, &symlink_map](auto&& recurse, const Directory& source, Directory& destination) -> void {
         destination.size = source.size;
         destination.capacity = source.capacity;
         destination.contents = std::make_unique<std::shared_ptr<FSObject>[]>(destination.capacity);
@@ -36,18 +36,18 @@ Directory::Directory(const Directory& other)
 
             if (Directory* dir = dynamic_cast<Directory*>(source.contents[i].get())) {
                 auto copiedDir = std::make_shared<Directory>(dir->getName());
-                self(self, *dir, *copiedDir);
+                recurse(recurse, *dir, *copiedDir);
                 destination.contents[i] = copiedDir;
             } else if (File* file = dynamic_cast<File*>(source.contents[i].get())) {
-                bool hlink = false;
+                bool foundHardlink = false;
                 for (size_t j = 0; j < hardlink_map.count; j++) {
                     if (file->inode == hardlink_map.data[j].oldInode) {
                         destination.contents[i] = std::make_shared<File>(file->getName(), *hardlink_map.data[j].newFile.get());
-                        hlink = true;
+                        foundHardlink = true;
                         break;
                     }
                 }
-                if (!hlink) {
+                if (!foundHardlink) {
                     destination.contents[i] = std::make_shared<File>(*file);
                     if (hardlink_map.capacity == hardlink_map.count) resizeRemapArray(hardlink_map);
                     hardlink_map.data[hardlink_map.count++] = {file->inode, std::static_pointer_cast<File>(destination.contents[i])};
