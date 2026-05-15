@@ -64,8 +64,13 @@ int main() {
     TEST(DirectoryTest, RecursiveCopy) {
         Directory root("root");
         root.mkdir("subdir");
+        auto subdir = dynamic_cast<Directory*>(root.get("subdir").get());
+        EXPECT_NE(nullptr, subdir);
         std::shared_ptr<File> file = root.touch("file.txt");
+        auto nestedFile = subdir->touch("nested.txt");
+        auto nestedHardlink = subdir->touch("root_hardlink.txt", *file);
         root.ln("link", file);
+        root.ln("nested_link", nestedFile);
         
         Directory copy = root;
         EXPECT_EQ("subdir", copy.get("subdir")->getName());
@@ -75,6 +80,20 @@ int main() {
         auto link = dynamic_cast<Symlink*>(copy.get("link").get());
         EXPECT_NE(nullptr, link);
         EXPECT_EQ(copy.get("file.txt"), link->resolve());
+
+        auto nestedLink = dynamic_cast<Symlink*>(copy.get("nested_link").get());
+        EXPECT_NE(nullptr, nestedLink);
+        auto copySubdir = dynamic_cast<Directory*>(copy.get("subdir").get());
+        EXPECT_NE(nullptr, copySubdir);
+        EXPECT_EQ(copySubdir->get("nested.txt"), nestedLink->resolve());
+
+        auto copyRootFile = dynamic_cast<File*>(copy.get("file.txt").get());
+        auto copyNestedHardlink = dynamic_cast<File*>(copySubdir->get("root_hardlink.txt").get());
+        EXPECT_NE(nullptr, copyRootFile);
+        EXPECT_NE(nullptr, copyNestedHardlink);
+        copyRootFile->write("copy content");
+        EXPECT_EQ("copy content", copyNestedHardlink->read());
+        EXPECT_EQ("", nestedHardlink->read());
         
         copy.mkdir("newdir");
         EXPECT_THROW(root.get("newdir"), std::runtime_error&);

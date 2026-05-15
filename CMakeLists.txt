@@ -11,6 +11,7 @@ include(CTest)
 if(WIN32)
     set(PROJECT_WARNING_FLAGS
         /W4
+        /WX
         /EHsc
         /permissive-
     )
@@ -80,6 +81,9 @@ if(BUILD_TESTING)
     add_executable(${PROJECT_NAME}_tests src/main.cpp)
     target_include_directories(${PROJECT_NAME}_tests PRIVATE ${PROJECT_INCLUDE_DIRS})
     target_compile_options(${PROJECT_NAME}_tests PRIVATE ${PROJECT_WARNING_FLAGS})
+    if(WIN32)
+        target_compile_options(${PROJECT_NAME}_tests PRIVATE /WX-)
+    endif()
     target_compile_definitions(${PROJECT_NAME}_tests PRIVATE CPORTA)
     target_link_libraries(
         ${PROJECT_NAME}_tests

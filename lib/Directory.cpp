@@ -23,37 +23,47 @@ Directory::Directory(const Directory& other)
 
     auto symlink_map = makeRemapArray<symlink_remap>();
 
-    for (std::size_t i = 0; i < size; i++) {
-        if (!other.contents[i]) {
-            contents[i].reset();
-            continue;
-        }
+    auto copyDirectory = [&hardlink_map, &symlink_map](auto&& self, const Directory& source, Directory& destination) -> void {
+        destination.size = source.size;
+        destination.capacity = source.capacity;
+        destination.contents = std::make_unique<std::shared_ptr<FSObject>[]>(destination.capacity);
 
-        if (Directory* dir = dynamic_cast<Directory*>(other.contents[i].get())) {
-            contents[i] = std::make_shared<Directory>(*dir);
-        } else if (File* file = dynamic_cast<File*>(other.contents[i].get())) {
-            bool hlink = false;
-            for (size_t j = 0; j < hardlink_map.count; j++) {
-                if (file->inode == hardlink_map.data[j].oldInode) {
-                    contents[i] = std::make_shared<File>(file->getName(), *hardlink_map.data[j].newFile.get());
-                    hlink = true;
-                    break;
+        for (std::size_t i = 0; i < destination.size; i++) {
+            if (!source.contents[i]) {
+                destination.contents[i].reset();
+                continue;
+            }
+
+            if (Directory* dir = dynamic_cast<Directory*>(source.contents[i].get())) {
+                auto copiedDir = std::make_shared<Directory>(dir->getName());
+                self(self, *dir, *copiedDir);
+                destination.contents[i] = copiedDir;
+            } else if (File* file = dynamic_cast<File*>(source.contents[i].get())) {
+                bool hlink = false;
+                for (size_t j = 0; j < hardlink_map.count; j++) {
+                    if (file->inode == hardlink_map.data[j].oldInode) {
+                        destination.contents[i] = std::make_shared<File>(file->getName(), *hardlink_map.data[j].newFile.get());
+                        hlink = true;
+                        break;
+                    }
                 }
+                if (!hlink) {
+                    destination.contents[i] = std::make_shared<File>(*file);
+                    if (hardlink_map.capacity == hardlink_map.count) resizeRemapArray(hardlink_map);
+                    hardlink_map.data[hardlink_map.count++] = {file->inode, std::static_pointer_cast<File>(destination.contents[i])};
+                }
+            } else if (Symlink* symlink = dynamic_cast<Symlink*>(source.contents[i].get())) {
+                destination.contents[i] = std::make_shared<Symlink>(*symlink);
+            } else {
+                throw std::logic_error("Unknown FSObject type during Directory copy");
             }
-            if (!hlink) {
-                contents[i] = std::make_shared<File>(*file);
-                if (hardlink_map.capacity == hardlink_map.count) resizeRemapArray(hardlink_map);
-                hardlink_map.data[hardlink_map.count++] = {file->inode, std::static_pointer_cast<File>(contents[i])};
-            }
-        } else if (Symlink* symlink = dynamic_cast<Symlink*>(other.contents[i].get())) {
-            contents[i] = std::make_shared<Symlink>(*symlink);
-        } else {
-            throw std::logic_error("Unknown FSObject type during Directory copy");
-        }
 
-        if (symlink_map.capacity == symlink_map.count) resizeRemapArray(symlink_map);
-        symlink_map.data[symlink_map.count++] = {other.contents[i], contents[i]};
-    }
+            if (symlink_map.capacity == symlink_map.count) resizeRemapArray(symlink_map);
+            symlink_map.data[symlink_map.count++] = {source.contents[i], destination.contents[i]};
+        }
+    };
+
+    copyDirectory(copyDirectory, other, *this);
     
     auto pendingDirs = makeRemapArray<Directory*>();
     pendingDirs.data[pendingDirs.count++] = this;
