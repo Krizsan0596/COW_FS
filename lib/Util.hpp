@@ -45,6 +45,9 @@ inline std::size_t growByHalf(std::size_t capacity) {
     }
 
     std::size_t newCapacity = (capacity * 3) / 2;
+    if (newCapacity <= capacity) {
+        return capacity + 1;
+    }
     return newCapacity;
 }
 

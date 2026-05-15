@@ -40,10 +40,11 @@ Directory::Directory(const Directory& other)
                     break;
                 }
             }
-            if (hlink) continue;
-            contents[i] = std::make_shared<File>(*file);
-            if (hardlink_map.capacity == hardlink_map.count) resizeRemapArray(hardlink_map);
-            hardlink_map.data[hardlink_map.count++] = {file->inode, std::static_pointer_cast<File>(contents[i])};
+            if (!hlink) {
+                contents[i] = std::make_shared<File>(*file);
+                if (hardlink_map.capacity == hardlink_map.count) resizeRemapArray(hardlink_map);
+                hardlink_map.data[hardlink_map.count++] = {file->inode, std::static_pointer_cast<File>(contents[i])};
+            }
         } else if (Symlink* symlink = dynamic_cast<Symlink*>(other.contents[i].get())) {
             contents[i] = std::make_shared<Symlink>(*symlink);
         } else {
@@ -64,13 +65,12 @@ Directory::Directory(const Directory& other)
             auto item = currentDir->contents[i];
             if (auto symlink = dynamic_cast<Symlink*>(item.get())) {
                 for (size_t j = 0; j < symlink_map.count; j++) {
-                    if (auto target = symlink->resolve()) {
+                    if (auto target = symlink->target.lock())
                         if (target == symlink_map.data[j].oldTarget) {
                             symlink->target = symlink_map.data[j].newTarget;
                             done = true;
                             break;
                         }
-                    }
                 }
                 if (done) continue;
             }
