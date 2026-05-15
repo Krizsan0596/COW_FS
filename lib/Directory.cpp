@@ -53,32 +53,30 @@ Directory::Directory(const Directory& other)
         if (symlink_map.capacity == symlink_map.count) resizeRemapArray(symlink_map);
         symlink_map.data[symlink_map.count++] = {other.contents[i], contents[i]};
     }
-
-    auto pending_dirs = makeRemapArray<Directory*>();
-    pending_dirs.data[pending_dirs.count++] = this;
-
-    while (pending_dirs.count > 0) {
-        Directory* current = pending_dirs.data[--pending_dirs.count];
-
-        for (std::size_t i = 0; i < current->size; ++i) {
-            if (!current->contents[i]) {
-                continue;
-            }
-
-            if (Symlink* link = dynamic_cast<Symlink*>(current->contents[i].get())) {
-                if (auto old_target = link->target.lock()) {
-                    for (std::size_t j = 0; j < symlink_map.count; ++j) {
-                        if (symlink_map.data[j].oldTarget == old_target) {
-                            link->target = symlink_map.data[j].newTarget;
+    
+    auto pendingDirs = makeRemapArray<std::shared_ptr<Directory>>();
+    pendingDirs.data[pendingDirs.count++] = std::make_shared<Directory>(*this);
+    
+    while (pendingDirs.count > 0) {
+        auto currentDir = pendingDirs.data[pendingDirs.count--];
+        for (size_t i = 0; i < currentDir->size; i++) {
+            bool done = false;
+            auto item = currentDir->contents[i];
+            if (auto symlink = dynamic_cast<Symlink*>(item.get())) {
+                for (size_t j = 0; j < symlink_map.count; j++) {
+                    if (auto target = symlink->resolve()) {
+                        if (target == symlink_map.data[j].oldTarget) {
+                            symlink->target = symlink_map.data[j].newTarget;
+                            done = true;
                             break;
                         }
                     }
                 }
+                if (done) continue;
             }
-
-            if (Directory* child_dir = dynamic_cast<Directory*>(current->contents[i].get())) {
-                if (pending_dirs.capacity == pending_dirs.count) resizeRemapArray(pending_dirs);
-                pending_dirs.data[pending_dirs.count++] = child_dir;
+            if (auto dir = dynamic_cast<Directory*>(item.get())) {
+                if (pendingDirs.count == pendingDirs.capacity) resizeRemapArray(pendingDirs);
+                pendingDirs.data[pendingDirs.count++] = std::make_shared<Directory>(*dir);
             }
         }
     }
