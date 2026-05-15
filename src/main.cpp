@@ -68,7 +68,7 @@ int main() {
         EXPECT_NE(nullptr, subdir);
         std::shared_ptr<File> file = root.touch("file.txt");
         auto nestedFile = subdir->touch("nested.txt");
-        auto nestedHardlink = subdir->touch("root_hardlink.txt", *file);
+        auto nestedHardlink = subdir->touch("hardlink_to_root.txt", *file);
         root.ln("link", file);
         root.ln("nested_link", nestedFile);
         
@@ -88,7 +88,7 @@ int main() {
         EXPECT_EQ(copySubdir->get("nested.txt"), nestedLink->resolve());
 
         auto copyRootFile = dynamic_cast<File*>(copy.get("file.txt").get());
-        auto copyNestedHardlink = dynamic_cast<File*>(copySubdir->get("root_hardlink.txt").get());
+        auto copyNestedHardlink = dynamic_cast<File*>(copySubdir->get("hardlink_to_root.txt").get());
         EXPECT_NE(nullptr, copyRootFile);
         EXPECT_NE(nullptr, copyNestedHardlink);
         copyRootFile->write("copy content");
