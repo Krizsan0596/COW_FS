@@ -34,20 +34,20 @@ Directory::Directory(const Directory& other)
                 continue;
             }
 
-            if (Directory* dir = dynamic_cast<Directory*>(source.contents[i].get())) {
-                auto copiedDir = std::make_shared<Directory>(dir->getName());
-                recurse(recurse, *dir, *copiedDir);
+            if (Directory* sourceDir = dynamic_cast<Directory*>(source.contents[i].get())) {
+                auto copiedDir = std::make_shared<Directory>(sourceDir->getName());
+                recurse(recurse, *sourceDir, *copiedDir);
                 destination.contents[i] = copiedDir;
             } else if (File* file = dynamic_cast<File*>(source.contents[i].get())) {
-                bool foundHardlink = false;
+                bool foundHardLink = false;
                 for (size_t j = 0; j < hardlink_map.count; j++) {
                     if (file->inode == hardlink_map.data[j].oldInode) {
                         destination.contents[i] = std::make_shared<File>(file->getName(), *hardlink_map.data[j].newFile.get());
-                        foundHardlink = true;
+                        foundHardLink = true;
                         break;
                     }
                 }
-                if (!foundHardlink) {
+                if (!foundHardLink) {
                     destination.contents[i] = std::make_shared<File>(*file);
                     if (hardlink_map.capacity == hardlink_map.count) resizeRemapArray(hardlink_map);
                     hardlink_map.data[hardlink_map.count++] = {file->inode, std::static_pointer_cast<File>(destination.contents[i])};
