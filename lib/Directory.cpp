@@ -54,11 +54,11 @@ Directory::Directory(const Directory& other)
         symlink_map.data[symlink_map.count++] = {other.contents[i], contents[i]};
     }
     
-    auto pendingDirs = makeRemapArray<std::shared_ptr<Directory>>();
-    pendingDirs.data[pendingDirs.count++] = std::make_shared<Directory>(*this);
+    auto pendingDirs = makeRemapArray<Directory*>();
+    pendingDirs.data[pendingDirs.count++] = this;
     
     while (pendingDirs.count > 0) {
-        auto currentDir = pendingDirs.data[pendingDirs.count--];
+        auto currentDir = pendingDirs.data[--pendingDirs.count];
         for (size_t i = 0; i < currentDir->size; i++) {
             bool done = false;
             auto item = currentDir->contents[i];
@@ -76,7 +76,7 @@ Directory::Directory(const Directory& other)
             }
             if (auto dir = dynamic_cast<Directory*>(item.get())) {
                 if (pendingDirs.count == pendingDirs.capacity) resizeRemapArray(pendingDirs);
-                pendingDirs.data[pendingDirs.count++] = std::make_shared<Directory>(*dir);
+                pendingDirs.data[pendingDirs.count++] = dir;
             }
         }
     }
