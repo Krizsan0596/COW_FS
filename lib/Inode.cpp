@@ -26,6 +26,8 @@ std::string Inode::read() const {
         output += blocks[i]->read();
     }
     output.resize(size);
+    const size_t nullPos = output.find('\0');
+    if (nullPos != std::string::npos) output.resize(nullPos);
     return output;
 }
 
