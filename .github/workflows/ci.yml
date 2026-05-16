@@ -100,20 +100,20 @@ jobs:
             cxx_link_flags: "-fsanitize=address,undefined"
             asan_options: "detect_leaks=1:halt_on_error=1"
             ubsan_options: "print_stacktrace=1"
-          # - os: ubuntu-latest
-          #   build_type: Release
-          #   cpp_compiler: clang++
-          #   cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g"
-          #   cxx_link_flags: "-fsanitize=memory"
-          #   asan_options: "detect_leaks=1:halt_on_error=1"
-          #   ubsan_options: "print_stacktrace=1"
-          # - os: ubuntu-latest
-          #   build_type: Debug
-          #   cpp_compiler: clang++
-          #   cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g"
-          #   cxx_link_flags: "-fsanitize=memory"
-          #   asan_options: "detect_leaks=1:halt_on_error=1"
-          #   ubsan_options: "print_stacktrace=1"
+          - os: ubuntu-latest
+            build_type: Release
+            cpp_compiler: clang++
+            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -fsanitize-blacklist=$GITHUB_WORKSPACE/src/gtest_lite.h"
+            cxx_link_flags: "-fsanitize=memory"
+            asan_options: ""
+            ubsan_options: ""
+          - os: ubuntu-latest
+            build_type: Debug
+            cpp_compiler: clang++
+            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -fsanitize-blacklist=$GITHUB_WORKSPACE/src/gtest_lite.h"
+            cxx_link_flags: "-fsanitize=memory"
+            asan_options: ""
+            ubsan_options: ""
         exclude:
           - os: windows-latest
             cpp_compiler: g++
