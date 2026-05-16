@@ -3,7 +3,6 @@
 #include "File.hpp"
 #include "Symlink.hpp"
 #include "Util.hpp"
-#include <algorithm>
 #include <cstddef>
 #include <iostream>
 #include <memory>
@@ -80,6 +79,10 @@ Directory::Directory(const Directory& other)
             }
         }
     };
+
+    while (pendingDst.count > 0 and pendingSrc.count > 0) {
+        cloneContents(*pendingSrc.data[--pendingSrc.count], *pendingDst.data[--pendingDst.count]);
+    }
 }
 
 void Directory::resizeContents() {
