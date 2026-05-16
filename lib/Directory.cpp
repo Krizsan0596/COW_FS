@@ -15,75 +15,48 @@ Directory::Directory(const std::string& dirName)
 Directory::Directory(const Directory& other)
     : FSObject(other),
       std::enable_shared_from_this<Directory>(),
-      size(other.size),
-      capacity(other.capacity),
+      size(0),
+      capacity(8),
       contents(std::make_unique<std::shared_ptr<FSObject>[]>(capacity)) {
-
+    for (size_t i = 0; i < other.size; i++) {
+        if (!other.contents[i]) continue;
+        if (dynamic_cast<Directory*>(other.contents[i].get())) {
+            if (size == capacity) {
+                resizeContents();
+            }
+            contents[size++] = std::make_shared<Directory>(other.contents[i]->getName());
+        }
+    }
+    auto pendingSrc = makeRemapArray<const Directory*>();
+    auto pendingDst = makeRemapArray<Directory*>();
+    auto symlink_map = makeRemapArray<symlink_remap>();
     auto hardlink_map = makeRemapArray<hardlink_remap>();
 
-    auto symlink_map = makeRemapArray<symlink_remap>();
+    pendingDst.data[pendingDst.count++] = this;
+    pendingSrc.data[pendingSrc.count++] = &other;
 
-    for (std::size_t i = 0; i < size; i++) {
-        if (!other.contents[i]) {
-            contents[i].reset();
-            continue;
-        }
+    auto cloneContents = [&](const Directory& src, Directory& dst) -> void {
+        for (size_t i = 0; i < src.size; i++) {
+            if (auto dir = dynamic_cast<Directory*>(src.contents[i].get())) {
+                if (pendingSrc.capacity == pendingSrc.count) resizeRemapArray(pendingSrc);
+                if (pendingDst.capacity == pendingDst.count) resizeRemapArray(pendingDst);
+                pendingSrc.data[pendingSrc.count++] = dir;
+                pendingDst.data[pendingDst.count++] = static_cast<Directory*>(dst.get(dir->getName()).get());
+                if (symlink_map.count == symlink_map.capacity) resizeRemapArray(symlink_map);
+                symlink_map.data[symlink_map.count++] = { src.contents[i], dst.get(src.contents[i]->getName()) };
+                continue;
+            }
+            if (auto symlink = dynamic_cast<Symlink*>(src.contents[i].get())) {
+                dst.ln(symlink->getName(), symlink->target.lock());
 
-        if (Directory* dir = dynamic_cast<Directory*>(other.contents[i].get())) {
-            contents[i] = std::make_shared<Directory>(*dir);
-        } else if (File* file = dynamic_cast<File*>(other.contents[i].get())) {
-            bool hlink = false;
-            for (size_t j = 0; j < hardlink_map.count; j++) {
-                if (file->inode == hardlink_map.data[j].oldInode) {
-                    contents[i] = std::make_shared<File>(file->getName(), *hardlink_map.data[j].newFile.get());
-                    hlink = true;
-                    break;
-                }
             }
-            if (!hlink) {
-                contents[i] = std::make_shared<File>(*file);
-                if (hardlink_map.capacity == hardlink_map.count) resizeRemapArray(hardlink_map);
-                hardlink_map.data[hardlink_map.count++] = {file->inode, std::static_pointer_cast<File>(contents[i])};
-            }
-        } else if (Symlink* symlink = dynamic_cast<Symlink*>(other.contents[i].get())) {
-            contents[i] = std::make_shared<Symlink>(*symlink);
-        } else {
-            throw std::logic_error("Unknown FSObject type during Directory copy");
-        }
 
-        if (symlink_map.capacity == symlink_map.count) resizeRemapArray(symlink_map);
-        symlink_map.data[symlink_map.count++] = {other.contents[i], contents[i]};
-    }
-    
-    auto pendingDirs = makeRemapArray<Directory*>();
-    pendingDirs.data[pendingDirs.count++] = this;
-    
-    while (pendingDirs.count > 0) {
-        auto currentDir = pendingDirs.data[--pendingDirs.count];
-        for (size_t i = 0; i < currentDir->size; i++) {
-            bool done = false;
-            auto item = currentDir->contents[i];
-            if (auto symlink = dynamic_cast<Symlink*>(item.get())) {
-                for (size_t j = 0; j < symlink_map.count; j++) {
-                    if (auto target = symlink->target.lock())
-                        if (target == symlink_map.data[j].oldTarget) {
-                            symlink->target = symlink_map.data[j].newTarget;
-                            done = true;
-                            break;
-                        }
-                }
-                if (done) continue;
-            }
-            if (auto dir = dynamic_cast<Directory*>(item.get())) {
-                if (pendingDirs.count == pendingDirs.capacity) resizeRemapArray(pendingDirs);
-                pendingDirs.data[pendingDirs.count++] = dir;
-            }
         }
-    }
+    };
 }
 
 void Directory::resizeContents() {
-    const std::size_t newCapacity = growByHalf(capacity);
+    size_t newCapacity = growByHalf(capacity);
     contents = resizeArray(std::move(contents), size, newCapacity);
     capacity = newCapacity;
 }
