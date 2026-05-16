@@ -55,14 +55,27 @@ Directory::Directory(const Directory& other)
                 continue;
             }
             if (auto file = dynamic_cast<File*>(src.contents[i].get())) {
-                auto newFile = dst.touch(file->getName());
-                newFile->write(file->read());
+                size_t j = 0;
+                for (; j < hardlink_map.count; j++) {
+                    if (file->inode == hardlink_map.data[i].oldInode) break;
+                }
+                bool isHardlink = j < hardlink_map.count;
+                std::shared_ptr<File> newFile;
+                if (!isHardlink) {
+                    newFile = dst.touch(file->getName());
+                    newFile->write(file->read());
+                }
+                else {
+                    newFile = dst.touch(file->getName(), *hardlink_map.data[j].newFile);
+                }
 
                 if (symlink_map.count == symlink_map.capacity) resizeRemapArray(symlink_map);
-                symlink_map.data[symlink_map.count++] = { src.contents[i], dst.get(src.contents[i]->getName()) };
-
-                if (hardlink_map.count == hardlink_map.capacity) resizeRemapArray(hardlink_map);
-                hardlink_map.data[hardlink_map.count++] = { file->inode, newFile };
+                symlink_map.data[symlink_map.count++] = { src.contents[i], newFile };
+                
+                if (!isHardlink) {
+                    if (hardlink_map.count == hardlink_map.capacity) resizeRemapArray(hardlink_map);
+                    hardlink_map.data[hardlink_map.count++] = { file->inode, newFile };
+                }
                 continue;
             }
         }
