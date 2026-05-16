@@ -22,6 +22,8 @@ public:
     }
 };
 
+class Directory;
+
 struct symlink_remap {
     std::shared_ptr<FSObject> oldTarget;
     std::shared_ptr<FSObject> newTarget;
@@ -30,6 +32,11 @@ struct symlink_remap {
 struct hardlink_remap {
     std::shared_ptr<Inode> oldInode;
     std::shared_ptr<File> newFile;
+};
+
+struct directory_remap {
+    const Directory* oldDir;
+    Directory* newDir;
 };
 
 template <typename T>
