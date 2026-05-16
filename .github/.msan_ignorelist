@@ -1,0 +1,2 @@
+# MSan ignorelist for gtest_lite.h
+src:*/gtest_lite.h
