@@ -95,7 +95,7 @@ Directory::Directory(const Directory& other)
             }
             if (auto symlink = dynamic_cast<Symlink*>(dir.contents[i].get())) {
                 for (size_t j = 0; j < symlink_map.count; j++) {
-                    auto current = symlink_map.data[--symlink_map.count];
+                    auto current = symlink_map.data[j];
                     if (symlink->target.lock() == current.oldTarget) symlink->target = current.newTarget;
                 }
             }

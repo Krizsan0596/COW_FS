@@ -103,15 +103,15 @@ jobs:
           - os: ubuntu-latest
             build_type: Release
             cpp_compiler: clang++
-            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -fsanitize-ignorelist=$GITHUB_WORKSPACE/.github/.msan_ignorelist -stdlib=libc++ -isystem ${{ github.workspace }}/libcxx_msan/include/c++/v1"
-            cxx_link_flags: "-fsanitize=memory -stdlib=libc++ -L${{ github.workspace }}/libcxx_msan/lib -Wl,-rpath,${{ github.workspace }}/libcxx_msan/lib"
+            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -fsanitize-ignorelist=$GITHUB_WORKSPACE/.github/.msan_ignorelist -stdlib=libc++ -isystem $GITHUB_WORKSPACE/libcxx_msan/include/c++/v1"
+            cxx_link_flags: "-fsanitize=memory -stdlib=libc++ -L$GITHUB_WORKSPACE/libcxx_msan/lib -Wl,-rpath,$GITHUB_WORKSPACE/libcxx_msan/lib --rtlib=compiler-rt --unwindlib=libunwind"
             asan_options: ""
             ubsan_options: ""
           - os: ubuntu-latest
             build_type: Debug
             cpp_compiler: clang++
-            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -fsanitize-ignorelist=$GITHUB_WORKSPACE/.github/.msan_ignorelist -stdlib=libc++ -isystem ${{ github.workspace }}/libcxx_msan/include/c++/v1"
-            cxx_link_flags: "-fsanitize=memory -stdlib=libc++ -L${{ github.workspace }}/libcxx_msan/lib -Wl,-rpath,${{ github.workspace }}/libcxx_msan/lib"
+            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -fsanitize-ignorelist=$GITHUB_WORKSPACE/.github/.msan_ignorelist -stdlib=libc++ -isystem $GITHUB_WORKSPACE/libcxx_msan/include/c++/v1"
+            cxx_link_flags: "-fsanitize=memory -stdlib=libc++ -L$GITHUB_WORKSPACE/libcxx_msan/lib -Wl,-rpath,$GITHUB_WORKSPACE/libcxx_msan/lib --rtlib=compiler-rt --unwindlib=libunwind"
             asan_options: ""
             ubsan_options: ""
         exclude:
@@ -131,23 +131,24 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ github.workspace }}/libcxx_msan
-        key: libcxx-msan-18-v1
+        key: libcxx-msan-18-v3
 
     - name: Build instrumented libc++
       if: matrix.cpp_compiler == 'clang++' && contains(matrix.cxx_sanitize_flags, 'memory') && steps.cache-libcxx.outputs.cache-hit != 'true'
       run: |
         sudo apt-get update && sudo apt-get install -y ninja-build
-        git clone --depth=1 https://github.com/llvm/llvm-project.git
+        git clone --depth=1 -b llvmorg-18.1.8 https://github.com/llvm/llvm-project.git
         cd llvm-project
         cmake -GNinja -S runtimes -B build \
-          -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi" \
+          -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_COMPILER=clang \
           -DCMAKE_CXX_COMPILER=clang++ \
           -DLLVM_USE_SANITIZER=Memory \
-          -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/libcxx_msan
-        ninja -C build cxx cxxabi
-        ninja -C build install-cxx install-cxxabi
+          -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON \
+          -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/libcxx_msan
+        ninja -C build
+        ninja -C build install
 
     - name: Set reusable strings
       id: strings
