@@ -15,7 +15,13 @@ std::string Block::read() const {
 }
 
 std::shared_ptr<Block> Block::write(const char newData[BLOCK_SIZE]) {
-    if (std::memcmp(newData, this->data, BLOCK_SIZE) == 0) return shared_from_this();
-    std::shared_ptr<Block> new_block = std::make_shared<Block>(std::string(newData, BLOCK_SIZE));
-    return new_block;
+    char paddedData[BLOCK_SIZE]{};
+    size_t inputLength = 0;
+    while (inputLength < BLOCK_SIZE && newData[inputLength] != '\0') {
+        inputLength++;
+    }
+    std::memcpy(paddedData, newData, inputLength);
+
+    if (std::memcmp(paddedData, this->data, BLOCK_SIZE) == 0) return shared_from_this();
+    return std::make_shared<Block>(std::string(paddedData, BLOCK_SIZE));
 }
