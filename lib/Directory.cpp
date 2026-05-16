@@ -48,7 +48,9 @@ Directory::Directory(const Directory& other)
             }
             if (auto symlink = dynamic_cast<Symlink*>(src.contents[i].get())) {
                 dst.ln(symlink->getName(), symlink->target.lock());
-
+                if (symlink_map.count == symlink_map.capacity) resizeRemapArray(symlink_map);
+                symlink_map.data[symlink_map.count++] = { src.contents[i], dst.get(src.contents[i]->getName()) };
+                continue;
             }
 
         }
