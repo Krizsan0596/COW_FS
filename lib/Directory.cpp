@@ -42,17 +42,29 @@ Directory::Directory(const Directory& other)
                 if (pendingDst.capacity == pendingDst.count) resizeRemapArray(pendingDst);
                 pendingSrc.data[pendingSrc.count++] = dir;
                 pendingDst.data[pendingDst.count++] = static_cast<Directory*>(dst.get(dir->getName()).get());
+
                 if (symlink_map.count == symlink_map.capacity) resizeRemapArray(symlink_map);
                 symlink_map.data[symlink_map.count++] = { src.contents[i], dst.get(src.contents[i]->getName()) };
                 continue;
             }
             if (auto symlink = dynamic_cast<Symlink*>(src.contents[i].get())) {
                 dst.ln(symlink->getName(), symlink->target.lock());
+
                 if (symlink_map.count == symlink_map.capacity) resizeRemapArray(symlink_map);
                 symlink_map.data[symlink_map.count++] = { src.contents[i], dst.get(src.contents[i]->getName()) };
                 continue;
             }
+            if (auto file = dynamic_cast<File*>(src.contents[i].get())) {
+                auto newFile = dst.touch(file->getName());
+                newFile->write(file->read());
 
+                if (symlink_map.count == symlink_map.capacity) resizeRemapArray(symlink_map);
+                symlink_map.data[symlink_map.count++] = { src.contents[i], dst.get(src.contents[i]->getName()) };
+
+                if (hardlink_map.count == hardlink_map.capacity) resizeRemapArray(hardlink_map);
+                hardlink_map.data[hardlink_map.count++] = { file->inode, newFile };
+                continue;
+            }
         }
     };
 }
