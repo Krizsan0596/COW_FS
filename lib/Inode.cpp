@@ -22,12 +22,11 @@ Inode::Inode(const Inode& other)
 
 std::string Inode::read() const {
     std::string output;
+    output.reserve((size + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE);
     for (size_t i = 0; i < (size + BLOCK_SIZE - 1) / BLOCK_SIZE; i++) {
         output += blocks[i]->read();
     }
     output.resize(size);
-    const size_t nullPos = output.find('\0');
-    if (nullPos != std::string::npos) output.resize(nullPos);
     return output;
 }
 
