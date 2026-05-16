@@ -26,21 +26,20 @@ Directory::Directory(const Directory& other)
             contents[size++] = std::make_shared<Directory>(other.contents[i]->getName());
         }
     }
-    auto pendingSrc = makeRemapArray<const Directory*>();
-    auto pendingDst = makeRemapArray<Directory*>();
+    auto dirsToClone = makeRemapArray<directory_remap>();
     auto symlink_map = makeRemapArray<symlink_remap>();
     auto hardlink_map = makeRemapArray<hardlink_remap>();
 
-    pendingDst.data[pendingDst.count++] = this;
-    pendingSrc.data[pendingSrc.count++] = &other;
+    dirsToClone.data[dirsToClone.count++] = { &other, this };
 
     auto cloneContents = [&](const Directory& src, Directory& dst) -> void {
         for (size_t i = 0; i < src.size; i++) {
             if (auto dir = dynamic_cast<Directory*>(src.contents[i].get())) {
-                if (pendingSrc.capacity == pendingSrc.count) resizeRemapArray(pendingSrc);
-                if (pendingDst.capacity == pendingDst.count) resizeRemapArray(pendingDst);
-                pendingSrc.data[pendingSrc.count++] = dir;
-                pendingDst.data[pendingDst.count++] = static_cast<Directory*>(dst.get(dir->getName()).get());
+                if (dirsToClone.capacity == dirsToClone.count) resizeRemapArray(dirsToClone);
+                dirsToClone.data[dirsToClone.count++] = {
+                    dir,
+                    static_cast<Directory*>(dst.get(dir->getName()).get())
+                };
 
                 if (symlink_map.count == symlink_map.capacity) resizeRemapArray(symlink_map);
                 symlink_map.data[symlink_map.count++] = { src.contents[i], dst.get(src.contents[i]->getName()) };
@@ -80,8 +79,31 @@ Directory::Directory(const Directory& other)
         }
     };
 
-    while (pendingDst.count > 0 and pendingSrc.count > 0) {
-        cloneContents(*pendingSrc.data[--pendingSrc.count], *pendingDst.data[--pendingDst.count]);
+    while (dirsToClone.count > 0) {
+        const auto current = dirsToClone.data[--dirsToClone.count];
+        cloneContents(*current.oldDir, *current.newDir);
+    }
+
+    auto pendingDirs = makeRemapArray<Directory*>();
+    pendingDirs.data[pendingDirs.count++] = this;
+
+    auto fixLinks = [&symlink_map, &pendingDirs](Directory& dir) -> void {
+        for (size_t i = 0; i < dir.size; i++) {
+            if (auto subdir = dynamic_cast<Directory*>(dir.contents[i].get())) {
+                if (pendingDirs.count == pendingDirs.capacity) resizeRemapArray(pendingDirs);
+                pendingDirs.data[pendingDirs.count++] = subdir;
+            }
+            if (auto symlink = dynamic_cast<Symlink*>(dir.contents[i].get())) {
+                for (size_t j = 0; j < symlink_map.count; j++) {
+                    auto current = symlink_map.data[--symlink_map.count];
+                    if (symlink->target.lock() == current.oldTarget) symlink->target = current.newTarget;
+                }
+            }
+        }
+    };
+
+    while (pendingDirs.count > 0) {
+        fixLinks(*pendingDirs.data[--pendingDirs.count]);
     }
 }
 
