@@ -17,15 +17,7 @@ Directory::Directory(const Directory& other)
       size(0),
       capacity(8),
       contents(std::make_unique<std::shared_ptr<FSObject>[]>(capacity)) {
-    for (size_t i = 0; i < other.size; i++) {
-        if (!other.contents[i]) continue;
-        if (dynamic_cast<Directory*>(other.contents[i].get())) {
-            if (size == capacity) {
-                resizeContents();
-            }
-            contents[size++] = std::make_shared<Directory>(other.contents[i]->getName());
-        }
-    }
+    
     auto dirsToClone = makeRemapArray<directory_remap>();
     auto symlink_map = makeRemapArray<symlink_remap>();
     auto hardlink_map = makeRemapArray<hardlink_remap>();
@@ -34,7 +26,11 @@ Directory::Directory(const Directory& other)
 
     auto cloneContents = [&](const Directory& src, Directory& dst) -> void {
         for (size_t i = 0; i < src.size; i++) {
+            if (!src.contents[i]) continue;
+
             if (auto dir = dynamic_cast<Directory*>(src.contents[i].get())) {
+                dst.mkdir(dir->getName());
+
                 if (dirsToClone.capacity == dirsToClone.count) resizeRemapArray(dirsToClone);
                 dirsToClone.data[dirsToClone.count++] = {
                     dir,
