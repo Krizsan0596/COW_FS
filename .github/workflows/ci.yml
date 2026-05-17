@@ -222,12 +222,14 @@ jobs:
       run: ctest --test-dir build-cov --output-on-failure
 
     - name: Collect coverage
+      if: ${{ !cancelled() }}
       run: |
         lcov --capture --directory build-cov --output-file coverage.info
-        lcov --remove coverage.info '*/gtest_lite.h' --output-file coverage.info
+        lcov --extract coverage.info "$GITHUB_WORKSPACE/lib/*" --output-file coverage.info
         genhtml coverage.info --output-directory coverage-html
 
     - name: Check line coverage threshold
+      if: ${{ !cancelled() }}
       run: |
         SUMMARY=$(lcov --summary coverage.info 2>&1)
         LINE_COV=$(echo "$SUMMARY"  | grep -oP 'lines\.*:\s*\K[\d.]+(?=%)')
@@ -240,6 +242,7 @@ jobs:
         }'
 
     - name: Upload HTML coverage
+      if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
       with:
         name: coverage-html
