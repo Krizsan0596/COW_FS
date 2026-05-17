@@ -1,11 +1,12 @@
 #include "../lib/Dispatcher.hpp"
-#include "../lib/SnapshotManager.hpp"
 #ifdef CPORTA
+#include <sstream>
 #include "../lib/File.hpp"
 #include "../lib/Inode.hpp"
 #include "../lib/Directory.hpp"
 #include "../lib/Symlink.hpp"
 #include "../lib/Util.hpp"
+#include "../lib/SnapshotManager.hpp"
 #include "gtest_lite.h"
 #endif
 
@@ -176,8 +177,10 @@ int main() {
     TEST(DispatcherTest, SnapshotFIFO) {
         Dispatcher disp;
         for (int i = 0; i < 5; ++i) {
-            disp.mkdir("/dir" + std::to_string(i));
+            std::string name = "/dir" + std::to_string(i);
+            disp.mkdir(name);
             disp.createSnapshot();
+            disp.rmdir(name);
         }
         
         disp.mkdir("/dir5");
@@ -189,6 +192,34 @@ int main() {
         
         EXPECT_THROW(disp.restoreSnapshot(-1), std::runtime_error&);
         EXPECT_THROW(disp.restoreSnapshot(5), std::runtime_error&);
+    } END
+
+    TEST(DispatcherTest, SnapshotDataIntegrity) {
+        Dispatcher disp;
+        disp.mkdir("/dir");
+        disp.write("/dir/file.txt", "Original Data");
+        
+        disp.createSnapshot(); // Snapshot 0: "Original Data"
+        
+        disp.write("/dir/file.txt", "Modified Data");
+        
+        {
+            std::stringstream ss;
+            std::streambuf* old_cout = std::cout.rdbuf(ss.rdbuf());
+            disp.read("/dir/file.txt");
+            std::cout.rdbuf(old_cout);
+            EXPECT_EQ("Modified Data\n", ss.str());
+        }
+        
+        disp.restoreSnapshot(0);
+        
+        {
+            std::stringstream ss;
+            std::streambuf* old_cout = std::cout.rdbuf(ss.rdbuf());
+            disp.read("/dir/file.txt");
+            std::cout.rdbuf(old_cout);
+            EXPECT_EQ("Original Data\n", ss.str());
+        }
     } END
 
     TEST(DispatcherTest, MaxPathDepth) {
