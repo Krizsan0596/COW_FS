@@ -55,7 +55,7 @@ Directory::Directory(const Directory& other)
             if (auto file = dynamic_cast<File*>(src.contents[i].get())) {
                 size_t j = 0;
                 for (; j < hardlink_map.count; j++) {
-                    if (file->inode == hardlink_map.data[i].oldInode) break;
+                    if (file->inode == hardlink_map.data[j].oldInode) break;
                 }
                 bool isHardlink = j < hardlink_map.count;
                 std::shared_ptr<File> newFile;
