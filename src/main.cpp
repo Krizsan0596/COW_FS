@@ -1,16 +1,14 @@
-#include "File.hpp"
-#include "Inode.hpp"
-#include "Directory.hpp"
-#include "Symlink.hpp"
-#include "Dispatcher.hpp"
-#include "SnapshotManager.hpp"
-#include "Util.hpp"
+#include "../lib/Dispatcher.hpp"
+#include "../lib/SnapshotManager.hpp"
 #ifdef CPORTA
+#include "../lib/File.hpp"
+#include "../lib/Inode.hpp"
+#include "../lib/Directory.hpp"
+#include "../lib/Symlink.hpp"
+#include "../lib/Util.hpp"
 #include "gtest_lite.h"
 #endif
-#include <iostream>
-#include <string>
-#include <sstream>
+
 
 int main() {
 #ifdef CPORTA
@@ -117,6 +115,94 @@ int main() {
         std::cin.rdbuf(orig_cin);
         
         EXPECT_NO_THROW(disp.read("/routed_dir/note"));
+    } END
+
+    TEST(DispatcherTest, PathNormalizationAndNavigation) {
+        Dispatcher disp;
+        disp.mkdir("/dir1");
+        disp.write("/dir1/file1", "content");
+        
+        EXPECT_NO_THROW(disp.ls("/dir1/"));
+        EXPECT_NO_THROW(disp.read("/dir1/file1///"));
+        
+        EXPECT_NO_THROW(disp.ls("/dir1/."));
+        EXPECT_NO_THROW(disp.ls("/dir1/.."));
+        EXPECT_NO_THROW(disp.read("/dir1/../dir1/file1"));
+        
+        EXPECT_NO_THROW(disp.ls("///dir1//"));
+    } END
+
+    TEST(DispatcherTest, ErrorHandling) {
+        Dispatcher disp;
+        
+        EXPECT_THROW(disp.mkdir("relative"), FileSystemError&);
+        
+        EXPECT_THROW(disp.mkdir("/a/b"), FileSystemError&);
+        EXPECT_THROW(disp.write("/a/b", "data"), FileSystemError&);
+        
+        disp.mkdir("/dir");
+        EXPECT_THROW(disp.mkdir("/dir"), FileSystemError&);
+        
+        disp.write("/dir/file", "data");
+        EXPECT_THROW(disp.read("/dir"), FileSystemError&);
+        EXPECT_THROW(disp.write("/dir", "data"), FileSystemError&);
+        EXPECT_THROW(disp.ls("/dir/file"), FileSystemError&);
+        
+        EXPECT_THROW(disp.read("/nonexistent"), FileSystemError&);
+        EXPECT_THROW(disp.rm("/nonexistent"), FileSystemError&);
+        EXPECT_THROW(disp.rmdir("/nonexistent"), FileSystemError&);
+    } END
+
+    TEST(DispatcherTest, LinkOperations) {
+        Dispatcher disp;
+        disp.mkdir("/dir");
+        disp.write("/dir/file", "data");
+        
+        disp.slink("/link", "/dir/file");
+        EXPECT_NO_THROW(disp.read("/link"));
+        
+        EXPECT_THROW(disp.slink("/badlink", "/nonexistent"), FileSystemError&);
+        
+        disp.hlink("/hlink", "/dir/file");
+        EXPECT_NO_THROW(disp.read("/hlink"));
+        
+        EXPECT_THROW(disp.hlink("/hdir", "/dir"), FileSystemError&);
+        
+        disp.write("/hlink", "new data");
+        EXPECT_NO_THROW(disp.read("/dir/file"));
+        EXPECT_NO_THROW(disp.read("/hlink"));
+    } END
+
+    TEST(DispatcherTest, SnapshotFIFO) {
+        Dispatcher disp;
+        for (int i = 0; i < 5; ++i) {
+            disp.mkdir("/dir" + std::to_string(i));
+            disp.createSnapshot();
+        }
+        
+        disp.mkdir("/dir5");
+        disp.createSnapshot();
+        
+        disp.restoreSnapshot(0);
+        EXPECT_NO_THROW(disp.ls("/dir1"));
+        EXPECT_THROW(disp.ls("/dir0"), FileSystemError&);
+        
+        EXPECT_THROW(disp.restoreSnapshot(-1), std::runtime_error&);
+        EXPECT_THROW(disp.restoreSnapshot(5), std::runtime_error&);
+    } END
+
+    TEST(DispatcherTest, MaxPathDepth) {
+        Dispatcher disp;
+        std::string path = "";
+        try {
+            for (int i = 0; i < 101; ++i) {
+                path += "/d" + std::to_string(i);
+                disp.mkdir(path);
+            }
+            EXPECT_THROW(disp.ls(path), FileSystemError&);
+        } catch (const FileSystemError& e) {
+            EXPECT_TRUE(std::string(e.what()).find("Maximum path depth") != std::string::npos);
+        }
     } END
 
     return gtest_lite::test.fail() ? 1 : 0;
