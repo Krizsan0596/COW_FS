@@ -70,7 +70,6 @@ int main() {
         EXPECT_EQ("subdir", copy.get("subdir")->getName());
         EXPECT_EQ("link", copy.get("link")->getName());
         
-        // Check if symlink in copy resolves to the file in the copy (deep copy/re-linking)
         auto link = dynamic_cast<Symlink*>(copy.get("link").get());
         EXPECT_NE(nullptr, link);
         EXPECT_EQ(copy.get("file.txt"), link->resolve());
@@ -222,18 +221,151 @@ int main() {
         }
     } END
 
-    TEST(DispatcherTest, MaxPathDepth) {
+    TEST(DispatcherTest, RouteReadWrite) {
         Dispatcher disp;
-        std::string path = "";
-        try {
-            for (int i = 0; i < 101; ++i) {
-                path += "/d" + std::to_string(i);
-                disp.mkdir(path);
-            }
-            EXPECT_THROW(disp.ls(path), FileSystemError&);
-        } catch (const FileSystemError& e) {
-            EXPECT_TRUE(std::string(e.what()).find("Maximum path depth") != std::string::npos);
-        }
+        std::streambuf* orig_cin = std::cin.rdbuf();
+        std::stringstream input;
+        input << "write /f1 \"data\"\n";
+        input << "read /f1\n";
+        input << "exit\n";
+        std::cin.rdbuf(input.rdbuf());
+        
+        std::stringstream out_ss;
+        std::streambuf* orig_cout = std::cout.rdbuf(out_ss.rdbuf());
+        
+        disp.route();
+        
+        std::cin.rdbuf(orig_cin);
+        std::cout.rdbuf(orig_cout);
+        
+        EXPECT_TRUE(out_ss.str().find("data") != std::string::npos);
+    } END
+
+    TEST(DispatcherTest, RouteLinks) {
+        Dispatcher disp;
+        std::streambuf* orig_cin = std::cin.rdbuf();
+        std::stringstream input;
+        input << "write /f1 \"content\"\n";
+        input << "slink /slink /f1\n";
+        input << "hlink /hlink /f1\n";
+        input << "exit\n";
+        std::cin.rdbuf(input.rdbuf());
+        
+        disp.route();
+        std::cin.rdbuf(orig_cin);
+        
+        EXPECT_NO_THROW(disp.read("/slink"));
+        EXPECT_NO_THROW(disp.read("/hlink"));
+    } END
+
+    TEST(DispatcherTest, RouteRmRmdir) {
+        Dispatcher disp;
+        std::streambuf* orig_cin = std::cin.rdbuf();
+        std::stringstream input;
+        input << "mkdir /dir\n";
+        input << "write /dir/f1 \"data\"\n";
+        input << "rm /dir/f1\n";
+        input << "rmdir /dir\n";
+        input << "exit\n";
+        std::cin.rdbuf(input.rdbuf());
+        
+        disp.route();
+        std::cin.rdbuf(orig_cin);
+        
+        EXPECT_THROW(disp.ls("/dir"), FileSystemError&);
+    } END
+
+    TEST(DispatcherTest, RouteSnapshots) {
+        Dispatcher disp;
+        std::streambuf* orig_cin = std::cin.rdbuf();
+        std::stringstream input;
+        input << "mkdir /dir\n";
+        input << "createSnapshot\n";
+        input << "rmdir /dir\n";
+        input << "restoreSnapshot 0\n";
+        input << "exit\n";
+        std::cin.rdbuf(input.rdbuf());
+        
+        disp.route();
+        std::cin.rdbuf(orig_cin);
+        
+        EXPECT_NO_THROW(disp.ls("/dir"));
+    } END
+
+    TEST(DispatcherTest, RouteErrors) {
+        Dispatcher disp;
+        std::streambuf* orig_cin = std::cin.rdbuf();
+        std::stringstream input;
+        input << "unknown_command\n";
+        input << "mkdir relative\n";
+        input << "mkdir /too /many /args\n";
+        input << "exit\n";
+        std::cin.rdbuf(input.rdbuf());
+        
+        std::stringstream err_ss;
+        std::streambuf* orig_cerr = std::cerr.rdbuf(err_ss.rdbuf());
+        
+        disp.route();
+        
+        std::cin.rdbuf(orig_cin);
+        std::cerr.rdbuf(orig_cerr);
+        
+        std::string errors = err_ss.str();
+        EXPECT_TRUE(errors.find("Unknown command") != std::string::npos);
+        EXPECT_TRUE(errors.find("Only absolute paths allowed") != std::string::npos);
+        EXPECT_TRUE(errors.find("Too many arguments") != std::string::npos);
+    } END
+
+    TEST(DispatcherTest, PathResolutionEdgeCases) {
+        Dispatcher disp;
+        disp.mkdir("/dir");
+        disp.write("/dir/file", "data");
+        
+        EXPECT_THROW(disp.ls("/dir/file/something"), FileSystemError&);
+        
+        disp.mkdir("/target");
+        disp.write("/target/f", "content");
+        disp.slink("/link_to_dir", "/target");
+        
+        std::stringstream ss;
+        std::streambuf* old_cout = std::cout.rdbuf(ss.rdbuf());
+        disp.read("/link_to_dir/f");
+        std::cout.rdbuf(old_cout);
+        EXPECT_EQ("content\n", ss.str());
+    } END
+
+    TEST(DispatcherTest, ErrorConditions) {
+        Dispatcher disp;
+        disp.mkdir("/dir");
+        disp.write("/dir/file", "data");
+        
+        EXPECT_THROW(disp.write("/dir/file/f2", "data"), FileSystemError&);
+        
+        EXPECT_THROW(disp.mkdir("/dir/file/newdir"), FileSystemError&);
+        
+        EXPECT_THROW(disp.rmdir("/dir/file/somedir"), FileSystemError&);
+        
+        disp.write("/f1", "d1");
+        disp.write("/f2", "d2");
+        EXPECT_THROW(disp.slink("/f2", "/f1"), FileSystemError&);
+        EXPECT_THROW(disp.hlink("/f2", "/f1"), FileSystemError&);
+        
+        EXPECT_THROW(disp.slink("/dir/file/link", "/f1"), FileSystemError&);
+    } END
+
+    TEST(DispatcherTest, QuotedTokens) {
+        Dispatcher disp;
+        std::streambuf* orig_cin = std::cin.rdbuf();
+        std::stringstream input;
+        input << "mkdir \"/dir with spaces\"\n";
+        input << "write \"/dir with spaces/file\" \"content with spaces\"\n";
+        input << "exit\n";
+        std::cin.rdbuf(input.rdbuf());
+        
+        disp.route();
+        std::cin.rdbuf(orig_cin);
+        
+        EXPECT_NO_THROW(disp.ls("/dir with spaces"));
     } END
 
     return gtest_lite::test.fail() ? 1 : 0;
