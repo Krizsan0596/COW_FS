@@ -13,6 +13,64 @@
 
 int main() {
 #ifdef CPORTA
+    // 0. Util Tests
+    TEST(UtilTest, GrowByHalf) {
+        EXPECT_EQ(8U, growByHalf(0));
+        EXPECT_EQ(12U, growByHalf(8));
+        EXPECT_EQ(2U, growByHalf(1));
+        EXPECT_EQ(3U, growByHalf(2));
+    } END
+
+    TEST(UtilTest, RemapArrayBasic) {
+        RemapArray<int> arr = makeRemapArray<int>(5);
+        EXPECT_EQ(0U, arr.count);
+        EXPECT_EQ(5U, arr.capacity);
+        EXPECT_NE(nullptr, arr.data.get());
+
+        RemapArray<int> emptyArr = makeRemapArray<int>(0);
+        EXPECT_EQ(0U, emptyArr.count);
+        EXPECT_EQ(0U, emptyArr.capacity);
+        EXPECT_EQ(nullptr, emptyArr.data.get());
+    } END
+
+    TEST(UtilTest, ResizeArray) {
+        auto arr = std::make_unique<int[]>(2);
+        arr[0] = 10;
+        arr[1] = 20;
+        
+        auto arr2 = resizeArray(std::move(arr), 2, 5);
+        EXPECT_EQ(10, arr2[0]);
+        EXPECT_EQ(20, arr2[1]);
+        EXPECT_EQ(nullptr, arr.get());
+
+        auto arr3 = resizeArray(std::move(arr2), 2, 0);
+        EXPECT_EQ(nullptr, arr3.get());
+    } END
+
+    TEST(UtilTest, ResizeRemapArray) {
+        RemapArray<int> arr = makeRemapArray<int>(2);
+        arr.data[0] = 1;
+        arr.data[1] = 2;
+        arr.count = 2;
+
+        resizeRemapArray(arr);
+        EXPECT_EQ(3U, arr.capacity);
+        EXPECT_EQ(2U, arr.count);
+        EXPECT_EQ(1, arr.data[0]);
+        EXPECT_EQ(2, arr.data[1]);
+
+        resizeRemapArray(arr);
+        EXPECT_EQ(4U, arr.capacity);
+        EXPECT_EQ(1, arr.data[0]);
+        EXPECT_EQ(2, arr.data[1]);
+    } END
+
+    TEST(UtilTest, FileSystemError) {
+        FileSystemError err("Something went wrong", "/path/to/file");
+        EXPECT_STREQ("Something went wrong", err.what());
+        EXPECT_EQ(std::string("/path/to/file"), err.path());
+    } END
+
     // 1. Inode Tests
     TEST(InodeTest, BasicReadWrite) {
         Inode inode("Hello, world!");
