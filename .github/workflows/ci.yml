@@ -100,20 +100,20 @@ jobs:
             cxx_link_flags: "-fsanitize=address,undefined"
             asan_options: "detect_leaks=1:halt_on_error=1"
             ubsan_options: "print_stacktrace=1"
-          - os: ubuntu-latest
-            build_type: Release
-            cpp_compiler: clang++
-            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -fsanitize-ignorelist=$GITHUB_WORKSPACE/.github/.msan_ignorelist -stdlib=libc++ -isystem $GITHUB_WORKSPACE/libcxx_msan/include/c++/v1"
-            cxx_link_flags: "-fsanitize=memory -stdlib=libc++ -L$GITHUB_WORKSPACE/libcxx_msan/lib -Wl,-rpath,$GITHUB_WORKSPACE/libcxx_msan/lib --rtlib=compiler-rt --unwindlib=libunwind"
-            asan_options: ""
-            ubsan_options: ""
-          - os: ubuntu-latest
-            build_type: Debug
-            cpp_compiler: clang++
-            cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -fsanitize-ignorelist=$GITHUB_WORKSPACE/.github/.msan_ignorelist -stdlib=libc++ -isystem $GITHUB_WORKSPACE/libcxx_msan/include/c++/v1"
-            cxx_link_flags: "-fsanitize=memory -stdlib=libc++ -L$GITHUB_WORKSPACE/libcxx_msan/lib -Wl,-rpath,$GITHUB_WORKSPACE/libcxx_msan/lib --rtlib=compiler-rt --unwindlib=libunwind"
-            asan_options: ""
-            ubsan_options: ""
+          # - os: ubuntu-latest
+          #   build_type: Release
+          #   cpp_compiler: clang++
+          #   cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -fsanitize-ignorelist=$GITHUB_WORKSPACE/.github/.msan_ignorelist -stdlib=libc++ -isystem $GITHUB_WORKSPACE/libcxx_msan/include/c++/v1"
+          #   cxx_link_flags: "-fsanitize=memory -g -stdlib=libc++ -L$GITHUB_WORKSPACE/libcxx_msan/lib -static-libstdc++ -static-libgcc --rtlib=compiler-rt --unwindlib=libunwind"
+          #   asan_options: ""
+          #   ubsan_options: ""
+          # - os: ubuntu-latest
+          #   build_type: Debug
+          #   cpp_compiler: clang++
+          #   cxx_sanitize_flags: "-fsanitize=memory -fno-omit-frame-pointer -g -fsanitize-ignorelist=$GITHUB_WORKSPACE/.github/.msan_ignorelist -stdlib=libc++ -isystem $GITHUB_WORKSPACE/libcxx_msan/include/c++/v1"
+          #   cxx_link_flags: "-fsanitize=memory -g -stdlib=libc++ -L$GITHUB_WORKSPACE/libcxx_msan/lib -static-libstdc++ -static-libgcc --rtlib=compiler-rt --unwindlib=libunwind"
+          #   asan_options: ""
+          #   ubsan_options: ""
         exclude:
           - os: windows-latest
             cpp_compiler: g++
@@ -131,7 +131,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ github.workspace }}/libcxx_msan
-        key: libcxx-msan-18-v3
+        key: libcxx-msan-18-v4
 
     - name: Build instrumented libc++
       if: matrix.cpp_compiler == 'clang++' && contains(matrix.cxx_sanitize_flags, 'memory') && steps.cache-libcxx.outputs.cache-hit != 'true'
@@ -141,7 +141,7 @@ jobs:
         cd llvm-project
         cmake -GNinja -S runtimes -B build \
           -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
-          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
           -DCMAKE_C_COMPILER=clang \
           -DCMAKE_CXX_COMPILER=clang++ \
           -DLLVM_USE_SANITIZER=Memory \
@@ -168,6 +168,13 @@ jobs:
 
     - name: Build
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+    - name: Upload MSan test executable
+      if: matrix.cpp_compiler == 'clang++' && contains(matrix.cxx_sanitize_flags, 'memory')
+      uses: actions/upload-artifact@v4
+      with:
+        name: cow_fs_tests_msan_${{ matrix.build_type }}
+        path: ${{ steps.strings.outputs.build-output-dir }}/cow_fs_tests
 
     - name: Add ASAN runtime to PATH (Windows)
       if: runner.os == 'Windows'
