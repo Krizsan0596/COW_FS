@@ -21,7 +21,7 @@ public:
     Directory(Directory&& other) = delete;
     Directory& operator=(const Directory& other) = delete;
     Directory& operator=(Directory&& other) = delete;
-    ~Directory() = default;
+    ~Directory();
     std::shared_ptr<FSObject> resolve(int depth = 0) override;
     void list();
     std::shared_ptr<FSObject>& get(const std::string& child);
