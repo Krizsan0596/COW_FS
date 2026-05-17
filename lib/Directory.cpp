@@ -110,22 +110,26 @@ Directory::Directory(const Directory& other)
 Directory::~Directory() {
     auto pendingDirs = makeRemapArray<std::shared_ptr<Directory>>();
 
-    auto ownDirs = [&pendingDirs] (Directory& dir) -> void {
+    auto collectSubdirs = [&pendingDirs](Directory& dir) {
         for (size_t i = 0; i < dir.size; i++) {
             if (dir.contents[i]) {
-                if (dynamic_cast<Directory*>(dir.contents[i].get())) {
+                if (auto subdir = std::dynamic_pointer_cast<Directory>(dir.contents[i])) {
                     if (pendingDirs.count == pendingDirs.capacity) resizeRemapArray(pendingDirs);
-                    pendingDirs.data[pendingDirs.count++] = std::dynamic_pointer_cast<Directory>(std::move(dir.contents[i]));
+                    pendingDirs.data[pendingDirs.count++] = std::move(subdir);
                 }
+                dir.contents[i].reset();
             }
         }
+        dir.size = 0;
     };
 
-    ownDirs(*this);
-    while (pendingDirs.count > 0) {
-        auto dir = std::move(pendingDirs.data[--pendingDirs.count]);
-        if (dir) {
-            ownDirs(*dir);
+    collectSubdirs(*this);
+    
+    size_t processed = 0;
+    while (processed < pendingDirs.count) {
+        auto current = std::move(pendingDirs.data[processed++]);
+        if (current) {
+            collectSubdirs(*current);
         }
     }
 }
