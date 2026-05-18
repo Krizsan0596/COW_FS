@@ -4,8 +4,6 @@
 #include <stdexcept>
 #include <string>
 
-#define MAX_DEPTH 5
-
 Symlink::Symlink(const std::string& fileName, const std::shared_ptr<FSObject>& source) : FSObject(fileName), target(source) {}
 
 Symlink::Symlink(const Symlink& other) : FSObject(other.getName()), target(other.target) {}
