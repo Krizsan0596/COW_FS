@@ -231,6 +231,42 @@ int main() {
         EXPECT_NO_THROW(disp.read("/hlink"));
     } END
 
+    TEST(DispatcherTest, HardlinkPersistence) {
+        Dispatcher disp;
+        disp.write("/f1", "data");
+        disp.hlink("/h1", "/f1");
+        disp.rm("/f1");
+        
+        std::stringstream ss;
+        std::streambuf* old_cout = std::cout.rdbuf(ss.rdbuf());
+        disp.read("/h1");
+        std::cout.rdbuf(old_cout);
+        EXPECT_EQ("data\n", ss.str());
+    } END
+
+    TEST(DispatcherTest, DanglingSymlink) {
+        Dispatcher disp;
+        disp.write("/f1", "data");
+        disp.slink("/s1", "/f1");
+        disp.rm("/f1");
+        EXPECT_THROW(disp.read("/s1"), FileSystemError&);
+    } END
+
+    TEST(DispatcherTest, NestedSymlinks) {
+        Dispatcher disp;
+        disp.write("/f1", "data");
+        disp.slink("/s1", "/f1");
+        disp.slink("/s2", "/s1");
+        disp.slink("/s3", "/s2");
+        disp.slink("/s4", "/s3");
+        disp.slink("/s5", "/s4");
+        disp.slink("/s6", "/s5");
+        EXPECT_NO_THROW(disp.read("/s6"));
+        
+        disp.slink("/s7", "/s6");
+        EXPECT_THROW(disp.read("/s7"), FileSystemError&);
+    } END
+
     TEST(DispatcherTest, SnapshotFIFO) {
         Dispatcher disp;
         for (int i = 0; i < 5; ++i) {
