@@ -254,7 +254,7 @@ void Dispatcher::write(const std::string& path, const std::string& data) {
             node = node->resolve();
             if (auto dir = dynamic_cast<Directory*>(node.get())) {
                 try {
-                    dir->get(child);
+                    (void)dir->get(child);
                     throw std::runtime_error("Destination already exists");
                 } catch (const std::runtime_error& e) {
                     if (std::string(e.what()) == "Destination already exists") throw;
@@ -372,7 +372,7 @@ void Dispatcher::slink(const std::string& dstPath, const std::string& srcPath) {
         node = node->resolve();
         if (auto dir = dynamic_cast<Directory*>(node.get())) {
             try {
-                dir->get(child);
+                (void)dir->get(child);
                 throw std::runtime_error("Destination already exists");
             } catch (const std::runtime_error& e) {
                 if (std::string(e.what()) == "Destination already exists") throw;
@@ -410,12 +410,12 @@ void Dispatcher::hlink(const std::string& dstPath, const std::string& srcPath) {
         auto dir = dynamic_cast<Directory*>(node.get());
         if (!dir) throw std::runtime_error("Destination parent is not a directory");
         try {
-            dir->get(child);
+            (void)dir->get(child);
             throw std::runtime_error("Destination already exists");
         } catch (const std::runtime_error& e) {
             if (std::string(e.what()) == "Destination already exists") throw;
         }
-        dir->touch(child, *dynamic_cast<File*>(srcNode.get()));
+        (void)dir->touch(child, *dynamic_cast<File*>(srcNode.get()));
     } catch (const std::runtime_error& e) {
         throw FileSystemError(e.what(), dstPath);
     }

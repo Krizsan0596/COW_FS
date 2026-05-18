@@ -23,5 +23,5 @@ public:
     ~Inode() = default;
     [[nodiscard]] std::string read() const override;
     void write(const std::string& data) override;
-    void clear() noexcept;
+    void clear() noexcept override;
 };
