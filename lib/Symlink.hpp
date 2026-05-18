@@ -5,6 +5,8 @@
 
 #include <memory>
 
+#define MAX_DEPTH 5
+
 class Symlink : public FSObject {
 private:
     std::weak_ptr<FSObject> target;

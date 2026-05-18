@@ -266,17 +266,14 @@ int main() {
         Dispatcher disp;
         disp.write("/f1", "data");
         disp.slink("/s1", "/f1");
-        disp.slink("/s2", "/s1");
-        disp.slink("/s3", "/s2");
-        disp.slink("/s4", "/s3");
-        disp.slink("/s5", "/s4");
-        disp.slink("/s6", "/s5");
-        EXPECT_NO_THROW(disp.read("/s6"));
-        
-        disp.slink("/s7", "/s6");
-        EXPECT_THROW(disp.read("/s7"), FileSystemError&);
-    } END
+        for (int i = 2; i <= MAX_DEPTH + 1; ++i) {
+            disp.slink("/s" + std::to_string(i), "/s" + std::to_string(i - 1));
+        }
+        EXPECT_NO_THROW(disp.read("/s" + std::to_string(MAX_DEPTH + 1)));
 
+        disp.slink("/s" + std::to_string(MAX_DEPTH + 2), "/s" + std::to_string(MAX_DEPTH + 1));
+        EXPECT_THROW(disp.read("/s" + std::to_string(MAX_DEPTH + 2)), FileSystemError&);
+    } END
     TEST(DispatcherTest, SnapshotBuffer) {
         Dispatcher disp;
         for (int i = 0; i < 5; ++i) {
