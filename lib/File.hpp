@@ -14,12 +14,12 @@ private:
 
 public:
     File() = delete;
-    File(const std::string& fileName);
+    explicit File(const std::string& fileName);
     File(const std::string& fileName, const std::string& data);
-    File(const File& other);
+    explicit File(const File& other);
     File(const std::string& fileName, const File& other);
-    std::shared_ptr<FSObject> resolve(int depth = 0) override;
-    std::string read() const;
+    [[nodiscard]] std::shared_ptr<FSObject> resolve(int depth = 0) noexcept override;
+    [[nodiscard]] std::string read() const;
     void write(const std::string& data);
     friend Directory::Directory(const Directory& other);
 };

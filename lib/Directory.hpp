@@ -16,19 +16,19 @@ private:
 
 public:
     Directory() = delete;
-    Directory(const std::string& dirName);
+    explicit Directory(const std::string& dirName);
     Directory(const Directory& other);
     Directory(Directory&& other) = delete;
     Directory& operator=(const Directory& other) = delete;
     Directory& operator=(Directory&& other) = delete;
     ~Directory();
-    std::shared_ptr<FSObject> resolve(int depth = 0) override;
+    [[nodiscard]] std::shared_ptr<FSObject> resolve(int depth = 0) noexcept override;
     void list();
-    std::shared_ptr<FSObject>& get(const std::string& child);
+    [[nodiscard]] std::shared_ptr<FSObject>& get(const std::string& child);
     void removeDir(const std::string& child);
     void removeFile(const std::string& child);
     void mkdir(const std::string& child);
     void ln(const std::string& child, const std::shared_ptr<FSObject>& target);
-    std::shared_ptr<File> touch(const std::string& child);
-    std::shared_ptr<File> touch(const std::string& child, const File& source);
+    [[nodiscard]] std::shared_ptr<File> touch(const std::string& child);
+    [[nodiscard]] std::shared_ptr<File> touch(const std::string& child, const File& source);
 };

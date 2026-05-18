@@ -46,7 +46,7 @@ struct RemapArray {
     std::size_t capacity;
 };
 
-inline std::size_t growByHalf(std::size_t capacity) {
+[[nodiscard]] inline std::size_t growByHalf(std::size_t capacity) noexcept {
     if (capacity == 0) {
         return 8;
     }
@@ -59,7 +59,7 @@ inline std::size_t growByHalf(std::size_t capacity) {
 }
 
 template <typename T>
-RemapArray<T> makeRemapArray(std::size_t capacity = 8) {
+[[nodiscard]] RemapArray<T> makeRemapArray(std::size_t capacity = 8) {
     return {
         capacity == 0 ? nullptr : std::make_unique<T[]>(capacity),
         0,
@@ -68,7 +68,7 @@ RemapArray<T> makeRemapArray(std::size_t capacity = 8) {
 }
 
 template <typename T>
-std::unique_ptr<T[]> resizeArray(std::unique_ptr<T[]> oldArray, std::size_t copyCount, std::size_t newCount) {
+[[nodiscard]] std::unique_ptr<T[]> resizeArray(std::unique_ptr<T[]> oldArray, std::size_t copyCount, std::size_t newCount) {
     if (newCount == 0) {
         return nullptr;
     }
