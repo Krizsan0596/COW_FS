@@ -145,7 +145,7 @@ int main() {
         
         disp.rmdir("/dir1");
         
-        disp.restoreSnapshot(0);
+        disp.restoreSnapshot(1);
         
         EXPECT_NO_THROW(disp.ls("/dir1"));
         EXPECT_THROW(disp.ls("/dir2"), FileSystemError&);
@@ -285,12 +285,12 @@ int main() {
         disp.mkdir("/dir5");
         disp.createSnapshot();
         
-        disp.restoreSnapshot(0);
+        disp.restoreSnapshot(1);
         EXPECT_NO_THROW(disp.ls("/dir1"));
         EXPECT_THROW(disp.ls("/dir0"), FileSystemError&);
         
-        EXPECT_THROW(disp.restoreSnapshot(-1), std::runtime_error&);
-        EXPECT_THROW(disp.restoreSnapshot(5), std::runtime_error&);
+        EXPECT_THROW(disp.restoreSnapshot(0), std::runtime_error&);
+        EXPECT_THROW(disp.restoreSnapshot(6), std::runtime_error&);
     } END
 
     TEST(DispatcherTest, SnapshotDataIntegrity) {
@@ -310,7 +310,7 @@ int main() {
             EXPECT_EQ("Modified Data\n", ss.str());
         }
         
-        disp.restoreSnapshot(0);
+        disp.restoreSnapshot(1);
         
         {
             std::stringstream ss;
@@ -382,7 +382,7 @@ int main() {
         input << "mkdir /dir\n";
         input << "createSnapshot\n";
         input << "rmdir /dir\n";
-        input << "restoreSnapshot 0\n";
+        input << "restoreSnapshot 1\n";
         input << "exit\n";
         std::cin.rdbuf(input.rdbuf());
         

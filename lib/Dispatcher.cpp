@@ -426,6 +426,6 @@ void Dispatcher::createSnapshot() const {
 }
 
 void Dispatcher::restoreSnapshot(int index) {
-    if (index < 0) throw std::runtime_error("Snapshot index must not be negative");
-    snapshotManager->restoreSnapshot(static_cast<size_t>(index), *this);
+    if (index < 1) throw std::runtime_error("Snapshot index must be at least 1");
+    snapshotManager->restoreSnapshot(static_cast<size_t>(index - 1), *this);
 }
