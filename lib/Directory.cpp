@@ -168,7 +168,7 @@ void Directory::ln(const std::string& child, const std::shared_ptr<FSObject>& ta
     contents[size++] = std::make_shared<Symlink>(child, target);
 }
 
-std::shared_ptr<FSObject> Directory::resolve(int) {
+std::shared_ptr<FSObject> Directory::resolve(int) noexcept {
     return shared_from_this();
 }
 

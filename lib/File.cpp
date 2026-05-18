@@ -16,7 +16,7 @@ File::File(const File& other)
       std::enable_shared_from_this<File>(),
       inode(std::make_shared<Inode>(*other.inode)) {}
 
-std::shared_ptr<FSObject> File::resolve(int) {
+std::shared_ptr<FSObject> File::resolve(int) noexcept {
     return shared_from_this();
 }
 

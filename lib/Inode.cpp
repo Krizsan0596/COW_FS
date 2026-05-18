@@ -50,7 +50,7 @@ void Inode::write(const std::string& data) {
     }
 }
 
-void Inode::clear() {
+void Inode::clear() noexcept {
     blocks = nullptr;
     size = 0;
 }

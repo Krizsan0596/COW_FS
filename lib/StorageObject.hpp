@@ -6,7 +6,7 @@
 class StorageObject {
 public:
     virtual ~StorageObject() = default;
-    virtual std::string read() const = 0;
+    [[nodiscard]] virtual std::string read() const = 0;
     virtual void write(const std::string& data) = 0;
     virtual void clear() = 0;
 };

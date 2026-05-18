@@ -15,13 +15,13 @@ private:
 
 public:
     Inode() = delete;
-    Inode(const std::string& data);
+    explicit Inode(const std::string& data);
     Inode(const Inode& other);
     Inode& operator=(const Inode& other) = delete;
     Inode(Inode&& other) = delete;
     Inode& operator=(Inode&& other) = delete;
     ~Inode() = default;
-    std::string read() const override;
+    [[nodiscard]] std::string read() const override;
     void write(const std::string& data) override;
-    void clear() override;
+    void clear() noexcept;
 };
