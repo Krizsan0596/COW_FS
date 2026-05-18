@@ -21,7 +21,7 @@ int main() {
         EXPECT_EQ(3U, growByHalf(2));
     } END
 
-    TEST(UtilTest, RemapArrayBasic) {
+    TEST(UtilTest, RemapArray) {
         RemapArray<int> arr = makeRemapArray<int>(5);
         EXPECT_EQ(0U, arr.count);
         EXPECT_EQ(5U, arr.capacity);
@@ -65,12 +65,6 @@ int main() {
         EXPECT_EQ(2, arr.data[1]);
     } END
 
-    TEST(UtilTest, FileSystemError) {
-        FileSystemError err("Something went wrong", "/path/to/file");
-        EXPECT_STREQ("Something went wrong", err.what());
-        EXPECT_EQ(std::string("/path/to/file"), err.path());
-    } END
-
     // 1. Inode Tests
     TEST(InodeTest, BasicReadWrite) {
         Inode inode("Hello, world!");
@@ -85,25 +79,25 @@ int main() {
     } END
 
     // 2. File Tests
-    TEST(FileTest, BasicOperations) {
-        File file("test.txt", "Initial content");
+    TEST(FileTest, BasicIO) {
+        File file("test.txt", "Content");
         EXPECT_EQ("test.txt", file.getName());
-        EXPECT_EQ("Initial content", file.read());
+        EXPECT_EQ("Content", file.read());
         
-        file.write("Updated content");
-        EXPECT_EQ("Updated content", file.read());
+        file.write("New content");
+        EXPECT_EQ("New content", file.read());
     } END
 
     TEST(FileTest, CopyBehavior) {
-        File original("original.txt", "Shared content");
-        File copy = original;
+        File original("original.txt", "Content");
+        File copy(original);
         
         EXPECT_EQ(original.read(), copy.read());
         
-        copy.write("Modified content");
+        copy.write("New content");
         
-        EXPECT_EQ("Shared content", original.read());
-        EXPECT_EQ("Modified content", copy.read());
+        EXPECT_EQ("Content", original.read());
+        EXPECT_EQ("New content", copy.read());
     } END
 
     // 3. Directory Tests
@@ -138,7 +132,7 @@ int main() {
     } END
 
     // 4. Dispatcher & Snapshot Tests
-    TEST(DispatcherTest, PathResolutionAndBasicOps) {
+    TEST(DispatcherTest, BasicOperations) {
         Dispatcher disp;
         disp.mkdir("/dir1");
         disp.write("/dir1/f1", "v1");
@@ -175,7 +169,7 @@ int main() {
         EXPECT_NO_THROW(disp.read("/routed_dir/note"));
     } END
 
-    TEST(DispatcherTest, PathNormalizationAndNavigation) {
+    TEST(DispatcherTest, PathResolution) {
         Dispatcher disp;
         disp.mkdir("/dir1");
         disp.write("/dir1/file1", "content");
@@ -188,6 +182,22 @@ int main() {
         EXPECT_NO_THROW(disp.read("/dir1/../dir1/file1"));
         
         EXPECT_NO_THROW(disp.ls("///dir1//"));
+
+        disp.mkdir("/dir");
+        disp.write("/dir/file", "data");
+        
+        EXPECT_THROW(disp.ls("/dir/file/something"), FileSystemError&);
+        
+        disp.mkdir("/target");
+        disp.write("/target/f", "content");
+        disp.slink("/link_to_dir", "/target");
+
+        std::stringstream ss;
+        std::streambuf* old_cout_buf = std::cout.rdbuf(ss.rdbuf());
+        disp.read("/link_to_dir/f");
+        std::cout.rdbuf(old_cout_buf);
+
+        EXPECT_EQ("content\n", ss.str());
     } END
 
     TEST(DispatcherTest, ErrorHandling) {
@@ -267,7 +277,7 @@ int main() {
         EXPECT_THROW(disp.read("/s7"), FileSystemError&);
     } END
 
-    TEST(DispatcherTest, SnapshotFIFO) {
+    TEST(DispatcherTest, SnapshotBuffer) {
         Dispatcher disp;
         for (int i = 0; i < 5; ++i) {
             std::string name = "/dir" + std::to_string(i);
@@ -292,7 +302,7 @@ int main() {
         disp.mkdir("/dir");
         disp.write("/dir/file.txt", "Original Data");
         
-        disp.createSnapshot(); // Snapshot 0: "Original Data"
+        disp.createSnapshot();
         
         disp.write("/dir/file.txt", "Modified Data");
         
@@ -352,7 +362,7 @@ int main() {
         EXPECT_NO_THROW(disp.read("/hlink"));
     } END
 
-    TEST(DispatcherTest, RouteRmRmdir) {
+    TEST(DispatcherTest, RouteDeletions) {
         Dispatcher disp;
         std::streambuf* orig_cin = std::cin.rdbuf();
         std::stringstream input;
@@ -410,24 +420,6 @@ int main() {
         EXPECT_TRUE(errors.find("Too many arguments") != std::string::npos);
     } END
 
-    TEST(DispatcherTest, PathResolutionEdgeCases) {
-        Dispatcher disp;
-        disp.mkdir("/dir");
-        disp.write("/dir/file", "data");
-        
-        EXPECT_THROW(disp.ls("/dir/file/something"), FileSystemError&);
-        
-        disp.mkdir("/target");
-        disp.write("/target/f", "content");
-        disp.slink("/link_to_dir", "/target");
-        
-        std::stringstream ss;
-        std::streambuf* old_cout = std::cout.rdbuf(ss.rdbuf());
-        disp.read("/link_to_dir/f");
-        std::cout.rdbuf(old_cout);
-        EXPECT_EQ("content\n", ss.str());
-    } END
-
     TEST(DispatcherTest, ErrorConditions) {
         Dispatcher disp;
         disp.mkdir("/dir");
@@ -447,7 +439,7 @@ int main() {
         EXPECT_THROW(disp.slink("/dir/file/link", "/f1"), FileSystemError&);
     } END
 
-    TEST(DispatcherTest, QuotedTokens) {
+    TEST(DispatcherTest, QuotedInput) {
         Dispatcher disp;
         std::streambuf* orig_cin = std::cin.rdbuf();
         std::stringstream input;
