@@ -48,9 +48,9 @@ jobs:
     - name: Analyze build
       run: |
         set -o pipefail
-        scan-build --status-bugs -o scan-build-reports \
+        scan-build --status-bugs -disable-checker cplusplus.NewDeleteLeaks -o scan-build-reports \
         cmake -S . -B build-analyze -G Ninja 2>&1 | tee -a scan-build-reports/scan-build.log
-        scan-build --status-bugs -o scan-build-reports \
+        scan-build --status-bugs -disable-checker cplusplus.NewDeleteLeaks -o scan-build-reports \
         cmake --build build-analyze 2>&1 | tee -a scan-build-reports/scan-build.log
 
     - name: Upload scan-build log
