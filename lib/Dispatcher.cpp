@@ -256,8 +256,8 @@ void Dispatcher::write(const std::string& path, const std::string& data) {
                 try {
                     dir->get(child);
                     throw std::runtime_error("Destination already exists");
-                } catch (const std::runtime_error& inner) {
-                    if (std::string(inner.what()) == "Destination already exists") throw;
+                } catch (const std::runtime_error& e) {
+                    if (std::string(e.what()) == "Destination already exists") throw;
                 }
                 node = dir->touch(child);
             } else {
@@ -333,10 +333,15 @@ void Dispatcher::mkdir(const std::string& path) {
         node = node->resolve();
         if (auto dir = dynamic_cast<Directory*>(node.get())) {
             try {
-                dir->get(child);
-                throw std::runtime_error("Directory already exists");
-            } catch (const std::runtime_error& inner) {
-                if (std::string(inner.what()) == "Directory already exists") throw;
+                auto existing = dir->get(child);
+                if (dynamic_cast<Directory*>(existing.get())) {
+                    throw std::runtime_error("Directory already exists");
+                } else {
+                    throw std::runtime_error("File already exists");
+                }
+            } catch (const std::runtime_error& e) {
+                if (std::string(e.what()) == "Directory already exists" || 
+                    std::string(e.what()) == "File already exists") throw;
                 dir->mkdir(child);
                 return;
             }
@@ -369,8 +374,8 @@ void Dispatcher::slink(const std::string& dstPath, const std::string& srcPath) {
             try {
                 dir->get(child);
                 throw std::runtime_error("Destination already exists");
-            } catch (const std::runtime_error& inner) {
-                if (std::string(inner.what()) == "Destination already exists") throw;
+            } catch (const std::runtime_error& e) {
+                if (std::string(e.what()) == "Destination already exists") throw;
             }
             dir->ln(child, srcNode);
         } else {
@@ -407,8 +412,8 @@ void Dispatcher::hlink(const std::string& dstPath, const std::string& srcPath) {
         try {
             dir->get(child);
             throw std::runtime_error("Destination already exists");
-        } catch (const std::runtime_error& inner) {
-            if (std::string(inner.what()) == "Destination already exists") throw;
+        } catch (const std::runtime_error& e) {
+            if (std::string(e.what()) == "Destination already exists") throw;
         }
         dir->touch(child, *dynamic_cast<File*>(srcNode.get()));
     } catch (const std::runtime_error& e) {
