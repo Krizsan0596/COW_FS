@@ -1,12 +1,12 @@
-#include "../lib/Dispatcher.hpp"
+#include "Dispatcher.hpp"
 #ifdef CPORTA
 #include <sstream>
-#include "../lib/File.hpp"
-#include "../lib/Inode.hpp"
-#include "../lib/Directory.hpp"
-#include "../lib/Symlink.hpp"
-#include "../lib/Util.hpp"
-#include "../lib/SnapshotManager.hpp"
+#include "File.hpp"
+#include "Inode.hpp"
+#include "Directory.hpp"
+#include "Symlink.hpp"
+#include "Util.hpp"
+#include "SnapshotManager.hpp"
 #include "gtest_lite.h"
 #endif
 
