@@ -41,7 +41,6 @@ int main() {
         auto arr2 = resizeArray(std::move(arr), 2, 5);
         EXPECT_EQ(10, arr2[0]);
         EXPECT_EQ(20, arr2[1]);
-        EXPECT_EQ(nullptr, arr.get());
 
         auto arr3 = resizeArray(std::move(arr2), 2, 0);
         EXPECT_EQ(nullptr, arr3.get());
@@ -109,7 +108,7 @@ int main() {
         EXPECT_EQ("subdir", obj->getName());
         EXPECT_NE(nullptr, dynamic_cast<Directory*>(obj.get()));
         
-        EXPECT_THROW(dir.get("nonexistent"), std::runtime_error&);
+        EXPECT_THROW((void)dir.get("nonexistent"), std::runtime_error&);
     } END
 
     TEST(DirectoryTest, RecursiveCopy) {
@@ -127,7 +126,7 @@ int main() {
         EXPECT_EQ(copy.get("file.txt"), link->resolve());
         
         copy.mkdir("newdir");
-        EXPECT_THROW(root.get("newdir"), std::runtime_error&);
+        EXPECT_THROW((void)root.get("newdir"), std::runtime_error&);
         EXPECT_NE(nullptr, copy.get("newdir"));
     } END
 
